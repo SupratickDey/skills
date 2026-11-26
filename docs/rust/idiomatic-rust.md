@@ -32,16 +32,22 @@ settled convention that differs.
   `Vec` and converting afterward; compose `?` with iteration via
   `.collect::<Result<Vec<_>, _>>()`. A plain `for` loop still wins when the body has
   real side effects, an early exit with state a combinator chain would obscure, or a
-  large body that does several jobs.
+  large body that does several jobs. Direct iteration avoids manual indexing, not
+  all panics. Use `get` for potentially absent indices; check lengths before `zip`
+  when equal lengths are required. Preserve traversal order, errors and side effects.
 - **Conversions** — implement `From`, get `Into` for free, and never implement `Into`
-  or `TryInto` directly; use `TryFrom` when the conversion can fail. Widening numbers is `From` (`u32::from(x_u16)`); narrowing is `TryFrom`, never `From<u32> for u16`. A free function named `to_foo`/`from_bar` where a trait impl
+  or `TryInto` directly; use `TryFrom` when the conversion can fail. Use `From` for
+  infallible, lossless, value-preserving and obvious conversions (`u32::from(x_u16)`);
+  use `TryFrom` for narrowing `u32` to `u16`. Wider representations are not always
+  lossless. A free function named `to_foo`/`from_bar` where a trait impl
   belongs is a sign this rule was skipped.
 - **Derives** — `Debug`, `Clone`, `PartialEq`, `Default`, `Hash` by derive before by
   hand. Hand-write only when the derive would be wrong: an invariant-preserving
   `Default`, a `Debug` that must redact a secret field, a `PartialEq` that must
   ignore a field the derive would compare. `Copy` for small plain data, never large or resource-owning types; no `Clone` on unique-access
   handles or secret key material; `Eq` with `PartialEq` except for floats; `Hash` agrees
-  with `Eq`; `PartialOrd` always ships with a matching `Ord`.
+  with `Eq`; implement `Ord` only for total orders, and keep it consistent with
+  `PartialOrd` and equality. Genuine partial orders may return `None`.
 - **Newtypes** — `struct UserId(u64)` costs nothing at runtime and turns an
   argument-order bug into a compile error. A type alias does not; use a newtype when
   meaning differs, when the type needs its own API, when the representation may change,
@@ -151,7 +157,9 @@ forwards, a trait, a delegation crate, or a derive crate for trait surface.
 ## It's working if
 
 - Index loops (`for i in 0..v.len()`) are gone in favor of iterator adaptors where
-  the loop body was a pure transformation.
+  the loop body was a pure transformation and the rewrite preserves behaviour.
+- Traversal and comparison changes retain error handling and have focused regression
+  coverage where appropriate, including unequal lengths and incomparable values.
 - No hand-written `to_foo`/`from_bar` free functions remain where a `From`/`TryFrom`
   impl would do the same job.
 - `Debug`, `Clone`, `PartialEq`, `Default`, and `Hash` are derived except where a
