@@ -37,19 +37,20 @@ can correct a wrong assumption before reaching a finding:
 
 ## The machine goes first
 
-Before either pass reads a line, run the verification step below and read the
-output. Anything clippy already reports is not a review finding; it is a build
-failure someone forgot to run. Put the tool output in the report grouped by
-cause — eight hits of one lint make one line, not eight — and say what ran
-and what could not. Reviewer attention is for what the tools cannot see: the
+Attempt the applicable verification commands before the review passes. Group
+machine diagnostics by root cause without duplicating the same finding. A
+compiler error, failing test or tool-reported correctness defect can still
+block merge; lint warnings are not automatically build failures. Record the
+actual exit status and what could not run. Continue static review if tools or
+compilation are blocked; distinguish evidence from uncertainty. Reviewer attention is for what the tools cannot see: the
 judgment call, the missing edge case, the scope that crept in.
 
 ## Read the repo lint configuration before judging style
 
 `[lints.clippy]` in `Cargo.toml`, a `clippy.toml`, a `rustfmt.toml`,
-`#![deny(...)]` in the crate root. A finding that contradicts a level the repo
-deliberately set is not a finding — it is a proposal, and it says so
-explicitly. Never override the configured level, and never re-run at a
+`#![deny(...)]` in the crate root. A stylistic finding that contradicts a lint level the repo deliberately set
+is a proposal. A demonstrated correctness, soundness, security or contract
+defect is still a defect even if a related lint is permitted. Never override the configured level, and never re-run at a
 stricter one and report the extra hits as defects. Pedantic output is
 proposals only, and only the ones that matter for this code, unless the repo
 itself opted into pedantic. The smell baseline layers on top of this
@@ -131,8 +132,9 @@ Rules that hold in both shapes:
 - Name a rule a reader can look up: a clippy lint name, or the owning skill of
   this repo.
 - Group repeats into one finding listing the lines.
-- Respect visible intent: a documented quirk or a commented choice becomes a
-  note stating the trade-off, never a blocker.
+- Respect documented intent for legitimate trade-offs, but a comment does not
+  make a reachable correctness, security or soundness defect acceptable.
+  Classify by consequence and evidence, not by whether a choice is documented.
 - Stay proportionate: five to ten findings for a short file, and a real bug is
   never buried among nits.
 
@@ -140,8 +142,9 @@ Rules that hold in both shapes:
 
 It does not rewrite the code — findings, not patches, unless the author asks —
 and it never runs `cargo fmt` on reviewed code; `--check` only.
-It does not review a diff it cannot build: a check that cannot run is named in
-the report, not papered over. It does not decide the parity contract of a
+It reviews statically when a build or check cannot run. Label unverified
+findings as such; a review with blocked required checks cannot certify merge
+readiness. It does not decide the parity contract of a
 port; that is `/port-to-rust`.
 
 ## Verification
@@ -150,11 +153,13 @@ Run before reporting, and quote the results in the report:
 
 ```bash
 cargo fmt --check
-cargo clippy --all-targets --all-features   # at the repo configured level; add -- -D warnings only if there is no lint config
-cargo test --all-features
+cargo clippy --all-targets   # at the repo configured level; add -- -D warnings only if there is no lint config
+cargo test
 ```
 
-If any of the three cannot run — no network for dependencies, no nightly for a
+Choose the repository's workspace members, target platforms and supported
+feature combinations; use `--all-features` only when supported. Run required
+CI-equivalent checks where practical. If any of the three cannot run — no network for dependencies, no nightly for a
 required component, a file with no manifest around it — the report says which
 check did not run rather than implying a clean bill. For a loose file, copying
 it into a scratch crate to run the tools is fine; the original stays untouched.
