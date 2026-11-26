@@ -370,7 +370,8 @@ the repo lives in, not advice about it.
 The `evals/` directory holds eval cases that run the skills against realistic
 tasks and grade the result. There is one case per porting skill (C, C++, Go,
 Java, Python, TypeScript, and `port-to-rust`) and three cases for
-`rust-code-review`, including static review when compilation is blocked.
+`rust-code-review`, including static review when compilation is blocked, plus
+one case each for `rust-config` and `rust-debugging`.
 
 Each case is a directory:
 

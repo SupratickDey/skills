@@ -43,7 +43,8 @@ configuration framework when the current mechanism is sufficient.
 5. Inject the smallest required configuration into services. Libraries accept
    settings from callers instead of reading ambient environment by default.
 
-Use rust-serde for deserialization details and type-driven-design for invariants.
+Run the `/rust-serde` skill for deserialization details and
+`/type-driven-design` for invariants.
 Choose unknown-field handling deliberately: reject typos in owned config files
 unless a forward-compatible contract requires accepting unknown fields.
 

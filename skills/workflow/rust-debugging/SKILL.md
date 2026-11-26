@@ -75,6 +75,7 @@ actual commands and outcomes, limitations and any residual risk. Separate
 static reasoning from executed evidence; a blocked check cannot be reported
 as passed.
 
-Route test design to rust-testing, ownership to ownership-not-clone, errors
-to rust-errors, async to async-rust and threads to rust-concurrency. A review
-request without authorization to edit belongs to rust-code-review.
+Route test design to `/rust-testing`, ownership to `/ownership-not-clone`,
+errors to `/rust-errors`, async to `/async-rust` and threads to
+`/rust-concurrency`. A review request without authorization to edit belongs
+to `/rust-code-review`.
