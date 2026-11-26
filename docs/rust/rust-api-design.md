@@ -48,9 +48,8 @@ A dependency gets in through the lowest rung that expresses the requirement: a
 concrete type first, then a wrapper struct, then a generic parameter, then
 `dyn Trait`. Climb only when the current rung cannot express the need — never
 for a test-only need (ADR 0006 belongs to `/rust-testing`). The cost of each rung
-is in `DEPENDENCY-INJECTION.md`; the rules the surface itself must obey — one
-path per item, no `Arc` or `Box` in a public signature, no leaked dependency
-types — and the ergonomics that cost nothing are in `SURFACE.md`.
+is in `DEPENDENCY-INJECTION.md`; the surface defaults, with justified exceptions for ownership,
+interoperability and compatibility, and the ergonomics that cost nothing are in `SURFACE.md`.
 
 ## Construction, standard traits, features
 
@@ -75,8 +74,8 @@ types — and the ergonomics that cost nothing are in `SURFACE.md`.
 ## What breaks callers
 
 Adding an enum variant or a struct field is breaking unless the type is
-`#[non_exhaustive]`; adding a required trait method is breaking, a default body
-is not; changing a concrete return type to `impl Trait` is; raising the MSRV is
+`#[non_exhaustive]`; adding a required trait method is breaking, a default body can still cause downstream method ambiguity or change dyn
+compatibility; changing a concrete return type to `impl Trait` is; raising the MSRV is
 not technically semver but is treated as breaking (raising it conservatively in
 minor releases is the common alternative, trading surprise for freedom). Adding a
 blanket impl, making a trait non-object-safe, and removing `const` also break;
@@ -116,8 +115,8 @@ crate may grow a consumer later.
   `cargo semver-checks` when the tool is present — before it was called
   non-breaking.
 - No public type is missing a derive it should carry.
-- No public signature names an `Arc`, `Rc`, `Box` or `RefCell`.
-- Every item has exactly one public path.
+- Public ownership wrappers and dependency types are deliberate contract choices.
+- Public paths are intentional; legacy paths remain when compatibility requires them.
 - Every public type derives `Debug`.
 - No library ships a prelude, except a deliberately curated, small one.
 - Public types carry the standard traits they honestly support, and `Send`/`Sync`

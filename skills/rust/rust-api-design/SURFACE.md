@@ -10,7 +10,7 @@ A caller should not have to understand two layers to use one. A return type of
 `Wrapper<Handle<Inner>>` makes the caller learn the whole stack to write one
 line.
 
-## No `Arc`, `Rc`, `Box` or `RefCell` in a public signature
+## Deliberate ownership in a public signature
 
 Those are how the crate stores the thing, not what the caller has. Take `&T` or
 `impl Into<T>`, return the value or a handle type that hides the pointer. The
@@ -88,9 +88,9 @@ clock) after them, and a closure goes at the very end. Take at most one closure.
 ## Balanced modules, and splitting the crate
 
 A module of thirty items next to one of two is usually one module that grew and
-one that never did. When genuinely in doubt about whether something belongs,
-split the crate: two crates with a clear dependency direction beat one crate
-with an internal boundary nobody enforces.
+one that never did. Prefer cohesive modules first. Split a crate only for a justified dependency,
+reuse, build or ownership boundary; coordinate architectural decisions with
+`/rust-architecture`.
 
 Prefer small crates, ideally one file: they compose, they compile in parallel,
 and others can reuse one piece without taking the rest. The costs are real:
@@ -112,12 +112,11 @@ the crate promises, and a name added to the submodule silently joins the public
 surface. The one accepted glob re-export is a platform module selected by
 `cfg(target_os)` that presents one interface over several implementations.
 
-## One path per item
+## Intentional public paths
 
-An item is public at exactly one path. Re-exporting it under a second path
-across iterations, so that both keep working, is the agent smell: it looks like
-compatibility and is actually a surface nobody can document. If a path was
-wrong, move it and take the breaking change.
+Prefer one canonical path for a new item. Preserve existing public paths when
+moving an item in a compatible release; a deprecated re-export can provide a
+migration route. Remove it only under the approved compatibility policy.
 
 ## Do not leak external types
 
@@ -129,9 +128,9 @@ is effectively vocabulary (`std` types, and in practice `http::Uri`-class
 crates the whole ecosystem shares) — and that exception is a judgment you write
 down, not a default. A second exception is a type exposed only behind a cargo
 feature (see `FEATURES.md`); a third is a type whose benefit is substantial
-enough to be worth the coupling. Once your crate reaches 1.0, every crate whose
-types show up in your API must itself be at 1.0 or later, since a breaking
-release of that crate forces a breaking release of yours.
+enough to be worth the coupling. A pre-1.0 dependency exposed publicly can be a deliberate compatibility cost.
+Evaluate its actual release policy, coupling and migration options; reaching
+1.0 does not require every exposed dependency to have reached 1.0.
 
 ## Re-exporting a foreign type, when you must
 
@@ -156,9 +155,9 @@ in the signature at all.
 
 ## Reaching the wrapped value
 
-A crate that abstracts something should let a caller get at the thing underneath
-(`fn inner(&self) -> &T`, `into_inner`). Without such an accessor, the first
-requirement you did not anticipate pushes a user to fork the crate.
+Expose underlying values only when doing so is part of the intended contract.
+Do not expose mutable access, secrets or an internal representation that defeats
+the abstraction or its invariants.
 
 ## Ergonomic parameter types
 

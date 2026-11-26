@@ -23,8 +23,8 @@ borrow-checker pain that an ownership fix resolves first
   valid ones; the difference is where bugs live. Two booleans where only three
   of four states make sense become an enum with three variants.
 - **Parse, do not validate.** A type constructible only through a checking
-  constructor validates once at the boundary; the private field is what makes
-  the constructor the only way in.
+  constructor validates once at the boundary; private fields help enforce construction, but every constructor, conversion,
+  deserializer and mutation path must preserve the invariant.
 - **Newtypes carry invariants.** `NonEmptyVec`, `Percentage`, `Sanitized<T>` —
   distinct from the argument-swap-safety newtype in `/idiomatic-rust`.
 - **Comments that state an invariant become enums.** A field comment reading
@@ -38,8 +38,9 @@ borrow-checker pain that an ownership fix resolves first
   time; an alias does not stop a mix-up, a newtype does, and it can also withhold
   traits from the inner type. A panicking `const fn new` suits fixed-bound
   newtypes, never an infallible `From`.
-- **Three validation tiers.** Static types, then dynamic checks (`debug_assert!`
-  for the expensive ones), then an `_unchecked` opt-out sibling.
+- **Validation.** Prefer static invariants and checked construction. Keep
+  runtime checks for external facts and untrusted input. Never rely on debug
+  assertions for release-mode security or safety.
 - **No reflection.** `type_name` is diagnostic, `Any::downcast_ref` recovers only
   what is already `dyn Any`; use traits, marker traits, and derives instead.
 - **The compiler as reviewer.** Types check what an agent or newcomer might miss.
@@ -65,8 +66,9 @@ enum with a `Result` when states are many, dynamic, or stored together.
   otherwise the plain integer and an error (same test for `Saturating`), and the overflow operator named
   explicitly — checked, saturating, or wrapping — rather than plain `+`.
 - **`TryFrom` over `as`** at the boundary, once.
-- **Floats compare badly.** No `==` without an epsilon appropriate to the
-  magnitude, and sorting goes through `total_cmp`.
+- **Float comparisons.** Exact equality is valid for an exact contract;
+  approximate comparisons require domain-defined tolerances and special-value
+  handling. Use `total_cmp` when its total ordering is intended.
 - The worked `Cents` versus `Meters` example, with the range-checking
   constructor, lives in `NUMERICS.md`; the modelling choices above live in `MODELLING.md`.
 
@@ -95,12 +97,12 @@ safety.
   a private constructor.
 - The runtime checks the new types made impossible are deleted, not left in
   place — grep confirms the now-impossible branch is gone.
-- Tests that asserted the old runtime rejection were removed or rewritten to a
-  compile-fail expectation.
+- Runtime boundary rejection tests remain, and truly impossible internal
+  states have compile-fail coverage where practical.
 - No typestate machine with more than a handful of fixed states was introduced
   for a struct built once.
 - No `as` cast between integer types outside a place where truncation is the
-  documented intent; no float `==`.
+  documented intent; floating-point comparison semantics are deliberate.
 - `cargo test` passes at the lint level configured in the repo.
 
 ## Where it fits
