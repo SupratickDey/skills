@@ -55,6 +55,10 @@ every handoff in this set is a directly typeable `/skill-name`.
 | How do we protect a trust boundary or sensitive operation? | `/rust-security` | `/unsafe-rust` - memory soundness; `/rust-supply-chain` - dependency risk |
 | How can existing code be made simpler without changing behavior? | `/rust-refactoring` | `/rust-debugging` - correcting a defect; `/rust-architecture` - changing boundaries |
 | What should be implemented, in what order, and how will it be accepted? | `/rust-implementation-planning` | `/rust-architecture` - component design; `/rust-debugging` - existing defects |
+| How should a network API endpoint behave? | `/rust-api-development` | `/rust-api-design` - related but distinct responsibility |
+| How should persistent data be queried or changed safely? | `/rust-database` | `/rust-architecture` - related but distinct responsibility |
+| How should an operation handle transient failure and overload? | `/rust-resilience` | `/async-rust` - related but distinct responsibility |
+| Is an application operationally ready for its intended deployment? | `/rust-production-readiness` | `/setup-rust-ci` - related but distinct responsibility |
 | Is this diff ready to merge? | `/rust-code-review` | every craft skill — review routes to them, it does not restate them |
 | How should this repo be configured? | `/setup-rust-skills` | `/setup-rust-ci`, `/setup-rust-pre-commit` — the workflow and the hook; this one writes the lint configuration and the recorded posture |
 | The repo needs CI that runs what the skills run locally | `/setup-rust-ci` | `/setup-rust-pre-commit` — that one is the commit-time convenience, this one the push-time gate |
@@ -75,7 +79,10 @@ signal that moves between them — is in `FLOWS.md`.
   `/rust-implementation-planning` for nontrivial work, `/rust-architecture`
   for structural decisions, `/rust-security` for trust boundaries,
   `/rust-refactoring` for behavior-preserving changes, `/rust-debugging` for
-  defects, and `/rust-code-review` before merge.
+  defects, `/rust-api-development` for network contracts, `/rust-database`
+  for persistence, `/rust-resilience` for bounded failure handling,
+  `/rust-production-readiness` for operational evidence, and
+  `/rust-code-review` before merge.
 - **Reviewing someone else's code:** `/rust-code-review` first — it dispatches
   to the craft skills itself; a craft skill directly only when the review
   already named it and the depth is wanted.

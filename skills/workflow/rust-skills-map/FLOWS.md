@@ -30,7 +30,10 @@ pointed at — and the question is what to do first and in what order.
    Use `/rust-implementation-planning` for nontrivial requirement sequencing,
    `/rust-architecture` for component boundaries, `/rust-security` for access
    control and trust boundaries, and `/rust-refactoring` for structural changes
-   that preserve behavior. Use `/rust-debugging` when existing behavior fails;
+   that preserve behavior. Use `/rust-api-development` for service endpoints,
+   `/rust-database` for persistence, `/rust-resilience` for bounded failures,
+   and `/rust-production-readiness` for release evidence. Use
+   `/rust-debugging` when existing behavior fails;
    it owns defect isolation and focused correction, not independent review. **Alongside, not after:** `/rust-testing` writes the
    test for each behaviour change as it lands, so the suite never trails the
    code, and `/rust-docs` writes the doc comment for each public item as its
