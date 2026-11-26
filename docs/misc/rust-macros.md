@@ -64,8 +64,7 @@ module and function scope, and `ty` fragments that accept paths and generics.
 
 A user-facing proc macro ships as `foo` (re-exports), `foo_proc` (entry
 points only), and `foo_proc_impl` (logic, snapshot tests with `insta`).
-Companion crates are pinned to one exact version with `=x.y.z` and released as a set, and renamed
-imports of the macro crate are not supported.
+Companion crates are pinned to one exact version with `=x.y.z` and released as a set, and renamed dependencies require deliberate path resolution and consumer tests where supported.
 
 ## Errors users can act on
 
@@ -101,6 +100,15 @@ through it.
 the compiler output against a recorded `.stderr` file. `cargo test` runs the
 suite, and the recorded message is what gets reviewed — the failure output
 is the surface the user reads.
+
+## Consumer compatibility
+
+Declarative macros use mixed-site hygiene; procedural macros need deliberate
+path resolution and spans. Hidden public helpers remain reachable and are
+part of the compatibility requirements for supported expansions. Test a
+separate consumer, including renamed dependencies where supported, local
+shadowing and conditional compilation. Verify compile-fail diagnostics rather
+than assuming token snapshots prove a valid expansion.
 
 ## It's working if
 

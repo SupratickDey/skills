@@ -6,8 +6,8 @@ description: Justify, document, and verify unsafe Rust — safety invariants on 
 # Unsafe Rust
 
 `unsafe` is a promise, not a permission: the code inside may break the rules,
-but the code around it must keep them. `unsafe` means undefined behaviour, not
-"dangerous" — UB is the compiler being permitted to assume the situation
+but the code around it must keep them. `unsafe` allows operations with additional proof obligations; it does not
+itself cause undefined behaviour — UB is the compiler being permitted to assume the situation
 cannot arise, which is why it surfaces as a later, unrelated miscompile. The
 depth is in `SAFETY-REVIEW.md` under `UB is not a bad outcome at runtime`.
 This skill governs *soundness* — whether a safe caller can trigger undefined
@@ -15,7 +15,7 @@ behaviour — and it never treats "the tests pass" as evidence of soundness.
 
 ## `unsafe` does not turn off the borrow checker
 
-It permits exactly five extra operations: dereferencing a raw pointer, calling
+Examples of operations requiring unsafe include dereferencing a raw pointer, calling
 an `unsafe fn`, implementing an `unsafe trait`, accessing a `union` field, and
 mutating a `static mut`. Everything else — lifetimes, ownership, types — still
 applies inside the block. `unsafe` is a narrow escape hatch — reaching for it
@@ -89,8 +89,8 @@ One point each; the review depth is in `SAFETY-REVIEW.md`.
 - **Aliasing:** a `&mut` coexisting with any other live reference to the same
   place.
 - **Uninitialized memory:** producing a reference to it — use `MaybeUninit<T>`,
-  never `mem::zeroed()`: zero is a valid `u32` and an invalid `&T`, `bool`, or
-  enum — and the invalidity is instant UB, not a bad value you will notice.
+  use `mem::zeroed()` only when the entire zero bit pattern is valid for the
+  type. Zero is valid for `u32` and `bool` (false), not for references or every enum — and the invalidity is instant UB, not a bad value you will notice.
 - **Invalid values:** a `bool` that is not 0 or 1, a `char` outside the scalar
   ranges, a null reference.
 - **`transmute`:** between types with different layouts, or without
@@ -103,7 +103,8 @@ One point each; the review depth is in `SAFETY-REVIEW.md`.
   non-unwinding ABI is undefined behaviour. A Rust panic escaping such an ABI
   aborts the process. Intentional cross-language unwinding requires a suitable
   unwind ABI and a verified interoperability contract.
-- **Data races:** shared state mutated without synchronization.
+- **Data races:** conflicting concurrent accesses to the same memory, at least one a write,
+  without the required synchronization (excluding permitted atomic accesses).
 
 ## Reach for the crate that already did it
 
@@ -117,6 +118,24 @@ bound the compiler reported. If a type holding a raw pointer or an `Rc` is
 rejected by a `Send` requirement, the type is the problem; a hand-written
 impl is for a type whose fields really are safe to move across threads, with
 the argument in a comment (`SAFETY-REVIEW.md`, per hand-written impl).
+
+## Pointer and initialization obligations
+
+For each raw-pointer operation, establish allocation identity, provenance,
+lifetime, alignment, initialized bytes, valid values, access permissions and
+aliasing. An address alone is not permission to access an allocation. Prefer
+pointer APIs such as addr and with_addr when supported by the project's MSRV;
+do not substitute integer-pointer round trips without understanding exposed
+provenance. Check the precise safety contract of each operation, including
+zero-length slices, allocation bounds and isize::MAX size limits. repr(C)
+alone does not establish validity or safe transmutation.
+
+Track partial initialization explicitly with MaybeUninit and ensure cleanup
+drops only initialized values, including on unwind. Do not create references
+to uninitialized T or call assume_init prematurely. For unsafe trait impls,
+review transfer and shared-access obligations independently. Passing Miri
+checks only executed paths under its model; a soundness argument remains
+necessary.
 
 ## Deferrals
 
@@ -146,6 +165,7 @@ environment as a side effect. State the Miri limitations plainly so the result
 is not over-read: it does not execute FFI calls into real C code, it only
 checks the paths the tests actually exercise, and it is slow enough that
 targeting the relevant test — `cargo miri test <filter>` — is usually the
-practical move. For the FFI side Miri cannot reach, the routes are
-`-Zmiri-strict-provenance` for pointer provenance and the address sanitizer for
-what a real C library does with the memory.
+practical move. Review pointer provenance independently. Where supported by the pinned Miri
+version, strict provenance checks can help expose address/provenance mistakes.
+Use supported native sanitizer and integration tests for real foreign code;
+Miri cannot establish the safety of that foreign execution.

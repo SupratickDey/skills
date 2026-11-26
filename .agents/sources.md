@@ -69,3 +69,11 @@
 - [Rust assert](https://doc.rust-lang.org/std/macro.assert.html) and [debug_assert](https://doc.rust-lang.org/std/macro.debug_assert.html): release-mode invariant enforcement.
 - [Serde container attributes](https://serde.rs/container-attrs.html) and [field attributes](https://serde.rs/field-attrs.html): Display conversion errors, defaults and aliases.
 - [Serde flatten](https://serde.rs/attr-flatten.html): incompatible unknown-field policy.
+
+## Runtime instrumentation, unsafe contracts, macros and documentation
+
+- Rust standard library pointer, MaybeUninit and slice safety documentation: https://doc.rust-lang.org/std/ptr/ and https://doc.rust-lang.org/std/mem/union.MaybeUninit.html and https://doc.rust-lang.org/std/slice/fn.from_raw_parts_mut.html
+- Rust Reference macro hygiene and procedural macros: https://doc.rust-lang.org/reference/macros-by-example.html and https://doc.rust-lang.org/reference/procedural-macros.html
+- Rustdoc documentation tests: https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html
+- Miri project documentation: https://github.com/rust-lang/miri
+- tracing instrumentation and OpenTelemetry metrics concepts: https://docs.rs/tracing/latest/tracing/ and https://opentelemetry.io/docs/concepts/signals/metrics/

@@ -37,9 +37,8 @@ and a library that installs one too fights for the global — a panic at
 startup with `tracing`, a re-formatted event stream with `log`. Per-module
 filtering with `EnvFilter` (`RUST_LOG="pool=debug,config=info"`) is the whole
 story on the library side. Within it, the remaining library-side rules:
-errors are logged once, at the boundary that handles them, with the whole
-`source` chain rather than the top-level `Display` alone. Secrets sit behind
-a redacting newtype, so no call site — present or future — can log them. And
+errors are logged once, at the boundary that handles them, with relevant sanitized context; inspect error sources before emitting them. Secrets sit behind
+a redacting newtype, which reduces accidental disclosure through those formatting paths. And
 field values are passed lazily, so a `debug!` that is off in production costs
 only the enablement check. Hot inner loops carry no telemetry at all: one event
 around the loop or per batch instead.
@@ -57,17 +56,24 @@ for — progress lines, generated content, the result of a command. Never in a
 library: a library has no stdout of its own, and no level, filter, or
 structure to attach the output to.
 
-**Where do metrics fit?** A metric is an event a backend aggregates — a
-count, a sum, a histogram — rather than a line a human reads. Emit it with
-the same named fields and the same `component.operation.state` name, and let
-the collector do the counting. The shared scheme is what keeps a metric and a
-log line joinable.
+**Where do metrics fit?** Use appropriate counters, histograms and gauges,
+with documented units and bounded attributes. Keep arbitrary identifiers, raw
+URLs and error strings out of metric labels. Correlate through authorized
+trace or log context instead of creating a time series per request.
 
 **How do I keep a secret out of a log for good?** A redacting newtype:
 `Debug` and `Display` print a fixed placeholder, so the `?` and `%` capture
 paths print the placeholder, and the bare field form does not compile for a
 custom type at all. A grep for the literal value finds the type, not the
-token, and a future call site cannot regress it.
+token, but accessors, nested errors and other serialization paths still need review.
+
+## Context propagation and privacy
+
+Instrument futures rather than holding entered span guards across await.
+Propagate trace context explicitly through task and network boundaries,
+filter untrusted baggage, and never use trace metadata for authorization.
+Test sanitized event capture, parentage, bounded metric labels and exporter
+failure. Keep mandatory audit requirements separate from best-effort telemetry.
 
 ## It's working if
 

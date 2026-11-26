@@ -67,15 +67,15 @@ startup with `tracing`, a re-formatted event stream with `log`.
 ## Errors are logged once, with the chain
 
 Log at the boundary that handles the error, not at every level it passes
-through, and log the whole `source` chain rather than the top-level `Display`
-alone, which is usually the least specific sentence available. What the error
+through, and include useful, sanitized error context. Inspect each source in the chain;
+never automatically emit raw errors containing credentials or user data. What the error
 type contains is `/rust-errors`.
 
 ## Never log a secret
 
 Tokens, passwords, keys, personal data. The structural answer, not a review
-habit: a newtype whose `Debug` and `Display` print a redacted form, so the
-secret cannot be logged even by a future careless call site. The `?` form
+habit: a newtype whose `Debug` and `Display` print a redacted form, so these formatting paths redact the secret. This is defense in depth, not a
+guarantee against disclosure through accessors, serialization or error chains. The `?` form
 prints via `Debug`, the `%` form via `Display`, and the bare form does not
 compile for a custom type at all — every path redacted or absent:
 
@@ -96,6 +96,30 @@ impl std::fmt::Display for ApiToken {
 ```
 
 Whether the newtype is the right model is `/type-driven-design`.
+
+## Trace context and metrics
+
+Instrument futures with the existing tracing instrumentation instead of
+holding an entered span guard across await. Propagate context through task
+spawns and outbound requests deliberately; extract remote context with the
+configured propagator at ingress. Treat incoming trace headers and baggage
+as untrusted metadata, not identity or authorization. Filter baggage at trust
+boundaries and avoid propagating sensitive values. Use the project's compatible
+OpenTelemetry SDK and semantic-convention version; do not introduce an exporter
+or remote destination without approval.
+
+Choose counters for monotonic totals, histograms for distributions, and gauges
+or appropriate up/down instruments for current state. Specify units, aggregation,
+bucket boundaries and a bounded attribute vocabulary. Do not attach user IDs,
+request IDs, raw URLs, arbitrary error messages or other unbounded identifiers
+to metric attributes. Prefer normalized route templates and limited outcome
+classes; use protected traces or logs for authorized correlation. Check
+cardinality and exporter backpressure. Sampling and telemetry loss must not
+silently weaken mandatory security audit guarantees.
+
+Test captured events with synthetic secret sentinels in arguments, nested errors
+and fields, verify trace parentage across tasks, and exercise telemetry failure
+and bounded metric labels. Inspect actual exported data in an isolated sink.
 
 ## Overhead
 

@@ -5,9 +5,9 @@ and the question that settles it.
 
 ## UB is not a bad outcome at runtime
 
-`unsafe` means undefined behaviour, not "dangerous", and the distinction is
-load-bearing: it is the compiler being permitted to assume the situation
-cannot arise — which is why UB shows up as an unrelated function miscompiling
+`unsafe` permits operations with additional proof obligations. Violating those
+obligations can cause undefined behaviour, where the compiler may assume the
+invalid situation cannot arise — which is why UB shows up as an unrelated function miscompiling
 six months later.
 
 ## Per `unsafe` block
@@ -42,6 +42,15 @@ impl is an invariant you do not have.
 - Is any `&mut` derived from it aliased by any other live reference in scope?
 - If it came from a `Vec`, is the `Vec` guaranteed not to reallocate between
   origin and use?
+
+## Provenance and validity
+
+- Does the pointer carry permission for the allocation and access in question?
+- Are size calculations checked, including slice byte length and allocation bounds?
+- Are zero-length pointer requirements, alignment and initialization satisfied?
+- Does the operation preserve aliasing and ownership through callbacks and unwind?
+- Are destination bit patterns, padding and ownership valid, beyond layout equality?
+- Can a partial initialization failure drop only initialized elements?
 
 ## Per `transmute`
 
