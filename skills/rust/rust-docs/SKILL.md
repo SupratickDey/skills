@@ -81,9 +81,9 @@ Doctests compile and run under `cargo test`. Use `?` rather than
 `.unwrap()` (and never the old `try!` macro that `?` replaced), so the example shows the code a caller would actually write,
 and hide setup lines with a leading `#`, so the example stays short without
 becoming a fragment. When the setup is heavy, wrap the visible lines in a
-hidden function whose arguments are the already-built values. The
-compiler checks the example, yet no code calls the wrapper, so the
-assertions never execute. Reach for it when constructing the real inputs
+hidden function whose arguments are the already-built values. The compiler checks the example, yet no code calls the wrapper, so the
+assertions never execute. Treat this as compilation-only evidence and prefer
+an explicit no_run example for a real external prerequisite. Reach for it when constructing the real inputs
 (a live connection, a populated store) would bury the point and could not
 run in a test anyway:
 
@@ -171,6 +171,17 @@ Docs are read by agents as well as people, and the same things serve both:
 documentation on every module and public item, examples that run as written,
 and types that make misuse unrepresentable.
 
+## Verify the real contract
+
+Examples should exercise the actual public API instead of a substitute
+implementation. Cover documented error and panic behavior with relevant tests.
+Compile-fail examples should fail for the intended reason; a missing import
+can otherwise make a false-positive doctest pass. Check supported features
+and target-specific documentation where applicable. Report ignored, no_run
+and compile-only examples separately from executed assertions. Do not launch
+a browser in headless automation. Preserve existing rustdoc lint policy and
+do not suppress warnings merely to make the build pass.
+
 ## Deferrals
 
 Whether the function should panic at all is `/rust-errors`; the invariant a
@@ -183,14 +194,14 @@ Run at the lint level the target repo configures; the fallback applies only
 when the repo configures no lints at all:
 
 ```bash
-cargo doc --no-deps --open # warnings are broken links and bad attributes; read the rendered pages
+cargo doc --no-deps       # inspect warnings and rendered pages when available
 cargo test --doc
 cargo clippy --all-targets # add -- -D warnings only if the repo has no lint config
 ```
 
 Where the crate has opted in to `#![warn(missing_docs)]`, the undocumented
 public item is a warning instead of a discovery. Propose it for a library,
-do not impose it, and never add it to a binary crate. Never satisfy the lint
+do not impose it; assess whether a binary has a documented public surface. Never satisfy the lint
 with rushed one-liners that merely restate the item name; where there is
-nothing to add, leave the item undocumented or allow the lint on it locally
-(see `COMMENTS.md`).
+nothing to add, follow the existing documentation policy. Do not add a lint allowance merely
+to pass a gate; request approval for any intentional exception.

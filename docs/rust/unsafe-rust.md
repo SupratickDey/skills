@@ -63,6 +63,15 @@ inputs). Verification runs
 `cargo miri test` (targeted at the relevant tests, with its limits stated),
 clippy at the repo lint level, and the full suite.
 
+## Provenance, validity and evidence
+
+Review allocation identity, pointer provenance, bounds, alignment, initialization,
+aliasing and ownership before every unsafe operation. A matching size or repr(C)
+does not establish validity. Zero is a valid bool representation but not a
+valid reference. Use MaybeUninit for partial initialization and account for
+cleanup on unwind. Miri is a dynamic check, not a proof of soundness; use
+native integration checks for foreign code that Miri cannot execute.
+
 ## Common questions
 
 **Is `unsafe` always a smell?** No — the three justifications are legitimate.

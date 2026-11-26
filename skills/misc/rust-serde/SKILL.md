@@ -5,8 +5,8 @@ description: Serde as the boundary where untrusted input becomes a domain type �
 
 # Rust Serde
 
-A `#[derive(Deserialize)]` is a claim that anything it accepts is already valid
-for the domain — the parse is the only place that claim is cheap to enforce.
+A derived deserializer checks the represented shape and field types, not every
+domain rule. Validate untrusted data before constructing a trusted domain value.
 
 ## Deserialization is a parse
 
@@ -20,7 +20,8 @@ that could have reported it usefully. What the validated type should be is
 
 Deserialize into a raw shape, convert with `TryFrom` into the validated type,
 and the conversion failure becomes a deserialization error — the read fails,
-not the first use of the value. The error must implement `std::error::Error`.
+not the first use of the value. The conversion error must implement `Display`; implementing `std::error::Error`
+is optional for this Serde attribute.
 
 ```rust
 #[derive(serde::Deserialize)]
@@ -61,7 +62,8 @@ so neither side distorts the other.
 ## Optionality has three meanings, and they are different
 
 - `#[serde(default)]` — the field may be absent and has a sensible zero;
-  `T::default()` fills it, and an explicit null is still an error.
+  `T::default()` fills it when absent. Explicit null is handled by the field's
+deserializer, which may accept it (for example Option) or reject it.
 - `Option<T>` — absent and null both land in `None`, erasing the distinction;
   when the code must say which it means, the field is not a bare `Option`.
 - `#[serde(skip_serializing_if = "Option::is_none")]` — do not emit the key at
@@ -75,7 +77,7 @@ up in a system you do not run, failing on a payload you produced.
 | Representation | On the wire | Constraint |
 |---|---|---|
 | External — the default | `{"Named": "x"}`: a one-key wrapper around the variant | the wrapper key is noise when the payload already says what it is |
-| Internal — `tag = "type"` | `{"type": "Named", "name": "x"}`: the tag inside the variant | cannot hold a newtype variant over a non-struct |
+| Internal — `tag = "type"` | `{"type": "Named", "name": "x"}`: the tag inside the variant | does not support tuple variants; newtype variants need a compatible map or struct representation |
 | Adjacent — `tag` plus `content` | `{"type": "Named", "value": "x"}`: tag and payload as siblings | the tag key is reserved in the envelope — a wire shape that already spends it at the top level cannot use this representation |
 | Untagged | the variant shape as-is, no marker | tries every variant in order and reports a useless error when all fail — last resort, never for input you must diagnose |
 
@@ -92,8 +94,8 @@ message from a service you do not control usually accepts.
 ## `flatten` and what it costs
 
 It composes a shared struct into several types without repeating the fields,
-and it costs twice: it disables `deny_unknown_fields` on the containing type,
-and it forces buffering during deserialization. Worth it for composition, not
+and it costs twice: it is unsupported with `deny_unknown_fields` on either participating struct,
+and may require buffering during deserialization. Worth it for composition, not
 for saving four lines.
 
 ## Serde in a library crate
@@ -119,6 +121,22 @@ else, and the attributes inside the type stay behind `cfg_attr` too. The
 dependency itself is optional and declared with `features = ["derive"]`.
 Types that are not plain data (handles, guards, anything holding a
 resource) get no impls, because a wire form for them would be a lie.
+
+## Schema evolution and resource limits
+
+Treat wire compatibility separately from Rust source compatibility. Preserve
+existing field names, enum tags, defaults and missing/null distinctions unless
+a migration is approved. Use aliases for accepted historical names when suitable;
+choose emitted names deliberately. Test old producer and consumer fixtures in
+the supported directions, including unknown fields, duplicate keys, unknown tags,
+invalid domain values and ambiguous untagged variants. Do not infer compatibility
+from a self-round-trip.
+
+Apply byte, nesting, collection and decompression limits at the appropriate
+transport/parser boundary before expensive allocation or processing. A conversion
+that rejects an oversized collection after deserialization does not bound the
+allocation that already happened. Use existing bounded readers or visitors where
+needed. Keep parser errors and raw payloads out of sensitive diagnostics.
 
 ## Errors from the boundary
 

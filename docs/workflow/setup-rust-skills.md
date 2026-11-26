@@ -112,6 +112,15 @@ per key; the nightly-only keys (`imports_granularity`, `group_imports`,
 toolchain is pinned to nightly. `#[rustfmt::skip]` is for hand-aligned tables
 and generated code, never personal style.
 
+## Mixed workspaces
+
+Inspect effective package metadata rather than assuming a single edition,
+MSRV or feature set. Record the supported package/target/feature matrix.
+Cargo workspace lint inheritance cannot be combined with member lint tables;
+propose a complete explicit member policy when a shared policy is insufficient.
+Do not impose resolver 3 or default-feature changes without verifying the
+supported Cargo version and effective feature graph.
+
 ## Common questions
 
 **What happens if the repo already has lint configuration?** Every existing
@@ -120,8 +129,7 @@ a diff. If the existing set already covers the defaults, the run reports
 "already correct" for the artifact and changes nothing.
 
 **Why are the lint levels not in `clippy.toml`?** It cannot set them — it
-holds the knobs, such as `msrv` and the test carve-outs. A level placed there
-compiles fine and is silently ignored; the levels belong in `Cargo.toml`
+holds the knobs, such as `msrv` and the test carve-outs. An unsupported level key there can produce configuration errors; the levels belong in `Cargo.toml`
 `[lints]`.
 
 **What if the repo prefers `expect` over a ban on both?** The default denies

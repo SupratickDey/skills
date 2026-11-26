@@ -57,7 +57,7 @@ Three tables at the root carry what members would otherwise repeat:
 members cannot drift onto different versions of the same crate; and
 `[workspace.lints]` for the lint set (see `TEMPLATES.md`).
 
-Define each workspace dependency with `default-features = false`. A member
+Choose default features per dependency and the actual supported configurations. For a dependency whose defaults should be opt-in, use `default-features = false` in the shared declaration. A member
 then opts into exactly the features it uses, with `features = [...]` beside
 `workspace = true`. Leave defaults on at the root and no member can turn
 them off, because a feature set can only be added to from a member, never
@@ -65,9 +65,15 @@ subtracted from. This is what keeps a small crate from quietly pulling in a
 dependency tree it never needed.
 
 When adopting this in an existing workspace, move one dependency at a time and
-let the diff stay reviewable. A dependency whose default features a member
-truly relies on gets that member an explicit `features = ["default"]`-style
-line, so behaviour does not change in the move.
+let the diff stay reviewable. Preserve the effective feature selection for every supported consumer. Inspect
+whether the dependency exposes a default feature and whether the proposed
+inheritance preserves it; compare resolved features before and after migration.
+
+A shared resolver or dependency declaration does not guarantee one resolved
+version or identical feature sets. Check cargo metadata and cargo tree for the
+actual selected packages and targets. Resolver 3 requires a sufficiently recent
+Cargo; select a resolver compatible with the supported toolchain and edition.
+Keep existing layout and resolver choices unless a migration is approved.
 
 ## Edition, MSRV, and unstable features
 

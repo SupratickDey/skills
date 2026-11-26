@@ -38,8 +38,9 @@ that wrapper; otherwise the plain integer goes in and saturation happens inside.
 
 ## Checked, saturating, wrapping — say which
 
-Plain `+` panics in debug and wraps in release, which is the worst of both:
-the same code fails differently in the two builds. Pick the operator that
+Plain integer addition follows the configured overflow-check policy. It
+normally checks in debug profiles and wraps in release profiles; a project
+can override that policy. Pick the operator that
 names the semantics:
 
 - `checked_add` when the overflow is a real failure the caller must handle;
@@ -52,7 +53,8 @@ reader seeing `a + b` cannot tell which of the three was wanted.
 
 ## `TryFrom` over `as`
 
-`as` between integer types truncates silently. `u64 as u32` on a value above
+A narrowing integer `as` conversion can truncate silently; signedness changes
+can reinterpret values. Widening lossless conversions are different. `u64 as u32` on a value above
 `u32::MAX` produces a number, and there is no evidence anywhere that it was
 ever wrong. `u32::try_from(n)?` at the boundary, once, is the whole fix:
 after the boundary the value is a `u32`, and no call site has to remember it
@@ -60,10 +62,11 @@ came from somewhere wider.
 
 ## Floats compare badly
 
-`==` on floats is almost always a bug; `f64` is not `Ord` because `NaN`
-exists, and `total_cmp` is what to sort by. State the rule for equality:
-compare against an epsilon appropriate to the magnitude, or do not compare at
-all — and for anything that is money or a count, the family pick above has
+Use exact equality when the contract calls for exact representable values.
+For approximate numerical comparisons, choose absolute and/or relative
+thresholds from the domain and define NaN, infinity and signed-zero handling.
+Use total_cmp when a total ordering is intended, including its NaN and
+signed-zero distinctions — and for anything that is money or a count, the family pick above has
 already removed the float.
 
 ## Where the newtype pays for itself
@@ -86,8 +89,8 @@ impl Cents {
         (-LIMIT..=LIMIT).contains(&value).then_some(Cents(value))
     }
 
-    fn plus(self, other: Self) -> Self {
-        Cents(self.0 + other.0)
+    fn plus(self, other: Self) -> Option<Self> {
+        self.0.checked_add(other.0).and_then(Self::new)
     }
 
     fn as_cents(self) -> i64 {
@@ -114,11 +117,13 @@ fn main() {
     // price.plus(height) is a compile error: `plus` takes a `Cents`, and no
     // operator is defined across the two types, so the wrong sum cannot be
     // written at all.
-    let doubled = price.plus(price);
+    let doubled = price.plus(price).unwrap();
+    assert!(Cents::new(100_000_000_000).unwrap().plus(price).is_none());
     println!("doubled: {} cents, height: {} m", doubled.as_cents(), height.as_meters());
 }
 ```
 
 The private field is the load-bearing part, as in `SKILL.md`: without it, a
-literal `Cents(42)` would bypass the range check, and the type would be a
-suggestion.
+literal outside the defining module could bypass the range check. The
+arithmetic method must also preserve the range; a sum can exceed the domain
+limit without overflowing i64.

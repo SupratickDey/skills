@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust CLI Development"
+  short_description: "Command contracts, output streams and exit semantics"

@@ -13,7 +13,8 @@ call site a puzzle and defeats editor formatting.
 ## Attributes and visibility pass through
 
 Accept `$(#[$meta:meta])*` before each item and re-emit it, so `#[cfg(..)]`,
-`#[derive(..)]`, and doc comments work per item. Visibility follows the input:
+`#[derive(..)]`, and doc comments work per item. Apply conditional compilation consistently to the generated item and its
+companion impls or functions. Visibility follows the input:
 capture `$vis:vis` and emit it. The emitted item is private unless the caller
 wrote `pub`; a macro never makes items public on its own.
 
@@ -39,6 +40,12 @@ id_types! {
     struct SessionId(u32);
 }
 ```
+
+The example below does not support arbitrary conditional attributes on the
+struct: a cfg-disabled struct would leave its impl behind. For such inputs,
+choose an explicit cfg syntax and propagate the condition to both generated
+items, or generate them inside a conditionally compiled scope. Do not copy
+all attributes to an impl because derive and other attributes may not apply.
 
 ## Works at module scope and inside a function
 

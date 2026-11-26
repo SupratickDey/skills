@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Database Engineering"
+  short_description: "Transactions, queries, migrations and persistence boundaries"

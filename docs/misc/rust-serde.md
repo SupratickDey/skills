@@ -25,7 +25,7 @@ The mechanism for validation at the parse is `#[serde(try_from = "...")]`:
 deserialize into a raw shape, convert with `TryFrom` into the validated type,
 and the conversion failure becomes a deserialization error — the payload
 fails at the read, not at the first use of the value. The `TryFrom` error
-must implement `std::error::Error`.
+must implement `Display`; implementing `std::error::Error` is optional.
 
 The surrounding decisions, per type:
 
@@ -33,8 +33,8 @@ The surrounding decisions, per type:
   name follows Rust convention, the attribute carries the wire convention, so
   neither side distorts the other.
 - **Optionality.** Three meanings that are different: `#[serde(default)]` —
-  the field may be absent and has a sensible zero, and an explicit null is
-  still an error; `Option<T>` — absent and null both land in `None`, erasing
+  the field may be absent and uses its default; explicit null is handled by
+  the field deserializer; `Option<T>` — absent and null both land in `None`, erasing
   the distinction, so when the code must say which it means the field is not a
   bare `Option`; `skip_serializing_if` — do not emit the key at all on the way
   out. Getting these wrong produces a round-trip that is not one — the bug
@@ -44,8 +44,8 @@ The surrounding decisions, per type:
   message from a service you do not control usually accepts (a producer may add
   a field without breaking every consumer).
 - **Composition.** `flatten` composes a shared struct into several types
-  without repeating the fields, but it disables `deny_unknown_fields` on the
-  containing type and forces buffering during deserialization — worth it for
+  without repeating the fields, but it is unsupported with `deny_unknown_fields` on either participating
+  struct and may require buffering during deserialization — worth it for
   composition, not for saving four lines.
 - **Errors.** A deserialization failure is user-facing input error, not a bug:
   it carries the reason — and, in JSON, a line and column once the failure
@@ -58,7 +58,7 @@ The surrounding decisions, per type:
 | Representation | On the wire | Constraint |
 |---|---|---|
 | External — the default | `{"Named": "x"}`: a one-key wrapper around the variant | the wrapper key is noise when the payload already says what it is |
-| Internal — `tag = "type"` | `{"type": "Named", "name": "x"}`: the tag inside the variant | cannot hold a newtype variant over a non-struct |
+| Internal — `tag = "type"` | `{"type": "Named", "name": "x"}`: the tag inside the variant | does not support tuple variants; newtype variants require a compatible map or struct |
 | Adjacent — `tag` plus `content` | `{"type": "Named", "value": "x"}`: tag and payload as siblings | the tag key is reserved in the envelope — a wire shape that already spends it at the top level cannot use this representation |
 | Untagged | the variant shape as-is, no marker | tries every variant in order and reports a useless error when all fail — last resort, never for input you must diagnose |
 
@@ -76,8 +76,8 @@ dependency is optional. Types that wrap a resource get no impls.
 ## Common questions
 
 **`#[serde(default)]` or `Option<T>`?** Different questions. `default` says
-the field may be absent and has a sensible zero, with an explicit null still an
-error. A bare `Option` says absent and null are both fine and both mean the
+the field may be absent and uses its default; explicit null is handled by the
+field deserializer. A bare `Option` says absent and null are both fine and both mean the
 same thing. When the code must say which it means, the field is not a bare
 `Option`.
 
@@ -92,9 +92,17 @@ order and, when all fail, reports the failure of the last attempt — no marker,
 no account of what was tried. That is why untagged is a last resort and never the
 representation for input you must diagnose.
 
-**Does `flatten` cost anything?** Twice: it disables `deny_unknown_fields` on
-the containing type, and it forces buffering during deserialization. Worth it
+**Does `flatten` cost anything?** It is unsupported with `deny_unknown_fields` on either participating struct
+and may require buffering during deserialization. Worth it
 for composition, not for saving four lines.
+
+## Schema evolution and resource limits
+
+Test historical producer and consumer fixtures, missing versus null values,
+unknown tags, duplicate keys and domain rejections. Preserve the established
+wire representation unless a migration is approved. Bound input bytes, nesting,
+collection sizes and decompression before expensive processing; validation after
+allocation is not a resource limit. Avoid exposing raw sensitive inputs in errors.
 
 ## It's working if
 

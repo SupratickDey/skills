@@ -53,11 +53,14 @@ for skill in \
   rust/async-rust rust/idiomatic-rust rust/ownership-not-clone rust/rust-api-design \
   rust/rust-concurrency rust/rust-config rust/rust-docs rust/rust-errors rust/rust-observability \
   rust/rust-architecture rust/rust-security \
+  rust/rust-api-development rust/rust-database rust/rust-resilience \
+  rust/rust-cross-platform rust/rust-cli-development rust/rust-memory-profiling rust/rust-distributed-systems \
   rust/rust-performance rust/type-driven-design rust/unsafe-rust \
   porting/port-from-c porting/port-from-cpp porting/port-from-go porting/port-from-java \
   porting/port-from-python porting/port-from-typescript porting/port-to-rust \
   workflow/rust-code-review workflow/rust-debugging workflow/rust-skills-map workflow/rust-testing \
-  workflow/rust-refactoring workflow/rust-implementation-planning \
+  workflow/rust-refactoring workflow/rust-implementation-planning workflow/rust-production-readiness \
+  workflow/rust-workspace-management \
   workflow/setup-rust-skills \
   misc/rust-ffi misc/rust-macros misc/rust-serde misc/rust-supply-chain \
   misc/setup-rust-ci misc/setup-rust-pre-commit

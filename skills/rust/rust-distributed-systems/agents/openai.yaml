@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Distributed Systems"
+  short_description: "Delivery semantics, consistency, fencing and coordination"

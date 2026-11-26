@@ -51,6 +51,15 @@
     "./skills/misc/rust-supply-chain",
     "./skills/misc/rust-macros",
     "./skills/misc/rust-serde",
-    "./skills/misc/rust-ffi"
+    "./skills/misc/rust-ffi",
+    "./skills/rust/rust-api-development",
+    "./skills/rust/rust-database",
+    "./skills/rust/rust-resilience",
+    "./skills/workflow/rust-production-readiness",
+    "./skills/workflow/rust-workspace-management",
+    "./skills/rust/rust-cross-platform",
+    "./skills/rust/rust-cli-development",
+    "./skills/rust/rust-memory-profiling",
+    "./skills/rust/rust-distributed-systems"
   ]
 }

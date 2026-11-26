@@ -62,3 +62,42 @@
 - [OWASP Authorization Patterns](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Patterns_Cheat_Sheet.html): policy decisions and enforcement boundaries.
 - [Martin Fowler: Refactoring](https://martinfowler.com/books/refactoring.html) and [Refactoring Boundary](https://martinfowler.com/bliki/RefactoringBoundary.html): small behavior-preserving transformations.
 - [NIST Secure Software Development Framework](https://csrc.nist.gov/Projects/ssdf) and [SSDF mapping](https://pages.nist.gov/nccoe-devsecops/mapping-ssdf.html): security requirements, risks and design traceability.
+
+## API evolution, invariants and serialization
+
+- [Cargo SemVer compatibility](https://doc.rust-lang.org/cargo/reference/semver.html): downstream method ambiguity, dyn compatibility and API evolution.
+- [Rust assert](https://doc.rust-lang.org/std/macro.assert.html) and [debug_assert](https://doc.rust-lang.org/std/macro.debug_assert.html): release-mode invariant enforcement.
+- [Serde container attributes](https://serde.rs/container-attrs.html) and [field attributes](https://serde.rs/field-attrs.html): Display conversion errors, defaults and aliases.
+- [Serde flatten](https://serde.rs/attr-flatten.html): incompatible unknown-field policy.
+
+## Runtime instrumentation, unsafe contracts, macros and documentation
+
+- Rust standard library pointer, MaybeUninit and slice safety documentation: https://doc.rust-lang.org/std/ptr/ and https://doc.rust-lang.org/std/mem/union.MaybeUninit.html and https://doc.rust-lang.org/std/slice/fn.from_raw_parts_mut.html
+- Rust Reference macro hygiene and procedural macros: https://doc.rust-lang.org/reference/macros-by-example.html and https://doc.rust-lang.org/reference/procedural-macros.html
+- Rustdoc documentation tests: https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html
+- Miri project documentation: https://github.com/rust-lang/miri
+- tracing instrumentation and OpenTelemetry metrics concepts: https://docs.rs/tracing/latest/tracing/ and https://opentelemetry.io/docs/concepts/signals/metrics/
+
+## Workspace configuration, CI and commit-hook safety
+
+- Cargo workspaces and lint inheritance: https://doc.rust-lang.org/cargo/reference/workspaces.html and https://doc.rust-lang.org/cargo/reference/manifest.html#the-lints-section
+- Cargo metadata and feature selection: https://doc.rust-lang.org/cargo/commands/cargo-metadata.html and https://doc.rust-lang.org/cargo/reference/features.html
+- GitHub Actions secure use: https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions
+- Git staged changes and hooks: https://git-scm.com/docs/git-diff and https://git-scm.com/docs/githooks
+
+## Application engineering: service contracts, persistence and operations
+
+- Axum middleware and state: https://docs.rs/axum/latest/axum/middleware/ and https://docs.rs/axum/latest/axum/extract/struct.State.html
+- SQLx transaction semantics: https://docs.rs/sqlx/latest/sqlx/struct.Transaction.html
+- AWS Well-Architected retry limits: https://docs.aws.amazon.com/wellarchitected/2022-03-31/framework/rel_mitigate_interaction_failure_limit_retries.html
+- Kubernetes probe semantics and pod lifecycle: https://kubernetes.io/docs/concepts/workloads/pods/probes/ and https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
+
+## Specialized engineering: Cargo, portability, command-line tools and distributed behavior
+
+- Cargo workspaces and features: https://doc.rust-lang.org/cargo/reference/workspaces.html and https://doc.rust-lang.org/cargo/reference/features.html
+- Cargo resolver and metadata: https://doc.rust-lang.org/cargo/reference/resolver.html and https://doc.rust-lang.org/cargo/commands/cargo-metadata.html
+- Rust platform support and path/process APIs: https://doc.rust-lang.org/rustc/platform-support.html and https://doc.rust-lang.org/std/path/ and https://doc.rust-lang.org/std/process/struct.Command.html
+- Rust OS strings and memory management: https://doc.rust-lang.org/std/ffi/struct.OsString.html and https://doc.rust-lang.org/book/ch15-06-reference-cycles.html
+- Heaptrack: https://github.com/KDE/heaptrack
+- Apache Kafka delivery semantics: https://kafka.apache.org/documentation/#semantics
+- PostgreSQL transaction isolation: https://www.postgresql.org/docs/current/transaction-iso.html
