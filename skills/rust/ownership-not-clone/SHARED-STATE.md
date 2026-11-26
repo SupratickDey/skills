@@ -7,13 +7,14 @@ mutate concurrently. It is the test for telling the two cases apart.
 
 ## The four tools, and what each one costs
 
-`Rc<T>` — single-thread shared ownership. `Arc<T>` — the same, `Send + Sync`,
-with an atomic reference count. Pick by whether the value crosses a thread:
+`Rc<T>` provides single-thread shared ownership. `Arc<T>` uses an atomic
+reference count and is `Send + Sync` when its contents satisfy the required
+bounds. It does not make a non-thread-safe payload thread-safe. Pick by whether the value crosses a thread:
 `Rc` where it cannot, `Arc` where it can. An `Arc` used on a single thread is
 paying for atomicity that never fires.
 
-`RefCell<T>` — interior mutability through shared ownership, checked at runtime.
-`Mutex<T>` — the same idea, with the check plus thread safety. `RwLock<T>` —
+`RefCell<T>` provides interior mutability with runtime borrow checks.
+`Mutex<T>` provides synchronized exclusive access and may block or deadlock. `RwLock<T>` —
 multiple concurrent readers, one writer. The cost of the `RefCell` family is the
 important thing to keep in view: it does not remove the borrow-checker error, it
 moves it from compile time to runtime. A `RefCell` that is borrowed mutably and
@@ -59,7 +60,8 @@ fn add_child(parent: &Rc<Folder>, name: &str) -> Rc<Folder> {
 ```
 
 The owning direction (parent to children) is strong and the back direction is
-weak, so dropping the root frees the whole tree.
+weak. Dropping the last strong owner of each node frees it; any independently
+retained child handle can keep that node and its descendants alive.
 
 ## The handle clone
 
@@ -109,7 +111,8 @@ because two owners genuinely exist.
 3. **Is interior mutability actually needed, or is the mutation confined to one
    place?** Mutation confined to one place can stay behind `&mut`.
 4. **Would an index into a `Vec` model the same graph without the runtime borrow
-   check?** If yes, the arena is cheaper and cannot panic.
+   check?** If yes, the arena can avoid dynamic borrow checks. Validate indices and
+handle staleness; unchecked assumptions can still cause panics.
 
 A `Rc<RefCell<T>>` is the answer when the honest answers are yes, yes, yes, no.
 
@@ -153,21 +156,21 @@ can point at the wrong node or past the end. Keep the `Vec` append-only, or pair
 the index with a generation counter or a typed id wrapper, so a stale handle is
 caught instead of silently reading the wrong thing.
 
-The index pays a bounds check per hop and a cache miss per node; the `Rc` pays
-an atomic counter, a possible runtime panic, and a possible cycle leak. For most
-internal graphs the arena wins, and it wins by making the failure modes
-unrepresentable rather than by being faster.
+An indexed arena can improve locality and avoid reference-count updates and
+cycles. `Rc` uses a non-atomic count, `Arc` an atomic count; interior mutability
+can introduce runtime borrowing failures. Measure actual costs. Validate arena
+identifiers rather than treating an index as proof of validity.
 
 ## When `Arc<Mutex<T>>` is simply correct
 
 State shared across threads with real concurrent mutation — a cache several
-worker threads read and write, a counter updated from a signal handler and a
-main loop — is exactly what `Arc<Mutex<T>>` is for. The test that makes it
+worker threads read and write, or a counter updated by ordinary worker threads — is exactly what `Arc<Mutex<T>>` is for. The test that makes it
 legitimate is the runtime-structure test from `SKILL.md`: multiple owners, no
 single one outliving the rest, mutation that is not confined to one place.
 
 One async-specific rule changes which mutex is right: a `std::sync::MutexGuard`
-held across an `.await` blocks the executor thread for the duration of the wait,
-which is a deadlock waiting to happen on a single-threaded runtime. The
+held across an `.await` can lead to a deadlock when another task blocks trying
+to acquire it, and may make the future non-Send. Keep synchronous critical
+sections short and do not lock a mutex from an asynchronous signal handler. The
 async-specific treatment of locks, channels, and blocking work lives in the
 `/async-rust` skill.

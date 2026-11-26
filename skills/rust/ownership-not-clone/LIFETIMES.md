@@ -56,11 +56,12 @@ struct OwnedExcerpt {
 }
 ```
 
-`'static` means the data lives for the whole program. It fits a true global or a
-value that is deliberately leaked once at startup with `Box::leak` and then shared
-freely by reference. It is not a way to make an error go away: a `'static` bound on
-a function argument demands owned data (or a leak), and satisfying it with a leak
-inside a loop is a memory leak.
+Distinguish `&'static T` from `T: 'static`. A static reference can remain valid
+for the program's lifetime. A `'static` type bound means the type contains no
+borrow shorter than `'static`; an owned `String` satisfies it and can still be
+dropped immediately. Scoped threads or tasks may accept shorter borrows when
+their lifetime is enforced. Use `Box::leak` only for deliberate process-lifetime
+storage, never as a borrow-checker workaround.
 
 ```rust
 // Leaked once at startup; the `&'static str` can then go to any thread.
@@ -71,10 +72,11 @@ fn install_banner(text: String) -> &'static str {
 
 ## The borrow rule and when it ends
 
-At any moment a value has any number of shared references or exactly one mutable
-reference, never both. A reference lives until its last use, not to the end of its
-block — so a conflict often disappears by moving the last read of the shared
-borrow ahead of the mutation.
+For ordinary references, exclusive access must not overlap conflicting access;
+disjoint fields and valid reborrows can coexist. Interior mutability has separate
+rules. Non-lexical lifetimes often let a borrow end after its last use, though
+destructors and escaping references may extend it. Move the final shared use ahead
+of the mutation when that preserves behaviour.
 
 ## Tactics, in the order to try them
 
