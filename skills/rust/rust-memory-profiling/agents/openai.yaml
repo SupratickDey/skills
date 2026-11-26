@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Memory Profiling"
+  short_description: "Allocation profiles, retained memory and peak resource budgets"
