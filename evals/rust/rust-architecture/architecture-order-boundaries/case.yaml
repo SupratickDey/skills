@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: architecture-order-boundaries
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  The agent extracts cohesive private validation/calculation logic, leaves submit as the orchestration boundary and retains the existing Ledger. It preserves quantity validation before amount overflow checks, checked multiplication, event contents and exactly one append on success and no append on error. Public API and dependencies remain unchanged; tests exercise success and both failure paths. No speculative infrastructure or trait hierarchy.

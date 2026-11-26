@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: security-tenant-delete
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  The implementation checks can_delete, searches by both trusted principal tenant and requested record id, and removes only an authorized matching record. Denied, cross-tenant and missing operations return false without mutation. Tests include duplicate ids across tenants, forbidden access, missing records and permitted deletion. Public API and dependencies are unchanged; no untrusted tenant override or diagnostic disclosure.

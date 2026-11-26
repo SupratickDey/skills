@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: plan-export-approval
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  The plan identifies the explicit export authorization and tenant-isolation requirements, the unresolved page-size and retention decisions, and the prerequisite approval. It inspects the existing read-only crate, identifies likely changes with appropriate uncertainty, sequences contract, implementation and tests, includes negative security and audit cases, and leaves all input files unchanged. It does not claim unexecuted checks passed.
