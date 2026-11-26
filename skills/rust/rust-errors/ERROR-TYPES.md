@@ -268,9 +268,11 @@ a message too, and the message should say what the caller did wrong or which
 promise broke — "call connect() before running queries" tells a human whether
 they misused the API or hit a bug, which the bare condition cannot. Never echo
 the condition itself as the message: `assert!(n > 0, "n > 0")` adds nothing the
-panic location does not already print. A panic message carries
-the actual values: `assert_eq!(len, cap)` over `assert!(len == cap)`, and an
-`expect` that names the invariant and the value that broke it.
+panic location does not already print. A panic message may carry safe diagnostic values: `assert_eq!(len, cap)` over
+`assert!(len == cap)` when both numbers are safe to expose. An `expect` names
+the invariant; omit credentials, tokens, personal data and private input.
+Remember that `expect` and `assert_eq!` can format the underlying value using
+`Debug`, so a safe message alone is not sufficient to redact a secret.
 
 ## The `anyhow` side
 

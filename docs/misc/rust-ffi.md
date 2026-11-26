@@ -29,9 +29,10 @@ Every line of business logic lives in a normal Rust crate that knows nothing
 about FFI; the `extern` layer converts types, checks pointers, and calls in.
 The split is a testability decision as much as a cleanliness one: the core
 crate is testable with `cargo test`, and the FFI layer is testable only
-through a foreign harness. Nothing panics across the boundary — every
-`extern "C"` entry point catches and converts the panic to an error code or
-an out-parameter — and strings cross as `CStr` and `CString`, with the
+through a foreign harness. A non-unwinding boundary does not permit unwinds;
+if the contract requires error translation rather than abort, catch unwinding
+Rust panics and return the documented error. Strings cross as `CStr` and
+`CString`, with the
 UTF-8 validation happening once, on the way in.
 
 ## Ownership on every pointer
@@ -64,9 +65,10 @@ static linking and `libloading`; the full rules are in `SYS-CRATES.md`.
 that may be deleted at cut-over. This one designs a boundary meant to stay,
 and it defers the migration mechanics back to that skill.
 
-**Does every entry point need `catch_unwind`?** Yes. Unwinding into a
-foreign frame is undefined behaviour, and the boundary is the one place
-`/rust-errors` does not call `catch_unwind` a last resort.
+**Does every entry point need `catch_unwind`?** No. An escaping Rust panic
+at a non-unwinding ABI aborts; an incoming foreign unwind through that ABI is
+undefined behaviour. Use a catch when error translation is required, and test
+with the host. It cannot catch aborting panics or portably catch foreign exceptions.
 
 **Is `repr(transparent)` worth it?** For a handle, yes: the newtype is
 invisible on the wire, so the caller sees a plain pointer, while the Rust
@@ -85,8 +87,9 @@ the file; those rules are in
 
 - No business logic in the `extern` layer — only translation, checks, and
   calls into the core crate.
-- Every entry point catches unwinds and converts them to an error code or
-  an out-parameter.
+- Each entry point has a documented ABI and failure policy. Where error
+  translation is required, tests cover Rust unwinding panics with the host;
+  no claim is made that aborting panics can be caught.
 - Every allocation has a matching free from the same crate, and the
   ownership is stated in the signature and in a `# Safety` section.
 - No pointer to stack data leaves the boundary, and C-owned pointers sit in

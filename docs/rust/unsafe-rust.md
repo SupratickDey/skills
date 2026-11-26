@@ -27,8 +27,8 @@ rather than silently claimed.
 
 Exactly three reasons, each with a checklist to answer before the block is
 written. **FFI** — calling into or out of another language: who owns the
-memory on each side, what happens on a panic crossing the boundary (it must
-not), whether the foreign function is thread-safe, what the lifetime of every
+memory on each side, the ABI and panic strategy (no unwind across a
+non-unwinding ABI), whether the foreign function is thread-safe, what the lifetime of every
 pointer received actually is; the boundary design goes to `/rust-ffi`.
 **A performance win the profile named** — what the measurement said, what
 invariant is asserted in place of the check, whether the safe version is

@@ -99,7 +99,10 @@ One point each; the review depth is in `SAFETY-REVIEW.md`.
   value with no variant is instant UB; use a `TryFrom` or a `match`), and
   stretching a lifetime with `transmute` to make a borrow check pass (the
   checker was right; restructure the ownership).
-- **Unwinding across FFI:** a Rust panic unwinding through a C stack frame.
+- **Invalid FFI unwind:** a foreign exception entering Rust through a
+  non-unwinding ABI is undefined behaviour. A Rust panic escaping such an ABI
+  aborts the process. Intentional cross-language unwinding requires a suitable
+  unwind ABI and a verified interoperability contract.
 - **Data races:** shared state mutated without synchronization.
 
 ## Reach for the crate that already did it
