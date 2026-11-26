@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Production Readiness"
+  short_description: "Release evidence, health semantics, shutdown and rollback"

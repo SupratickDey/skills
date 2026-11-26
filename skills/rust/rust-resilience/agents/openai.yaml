@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Resilience"
+  short_description: "Deadlines, bounded retries, backpressure and failure isolation"

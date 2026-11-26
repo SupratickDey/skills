@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust API Development"
+  short_description: "HTTP and RPC contracts, request boundaries and idempotency"

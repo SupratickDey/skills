@@ -84,3 +84,10 @@
 - Cargo metadata and feature selection: https://doc.rust-lang.org/cargo/commands/cargo-metadata.html and https://doc.rust-lang.org/cargo/reference/features.html
 - GitHub Actions secure use: https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions
 - Git staged changes and hooks: https://git-scm.com/docs/git-diff and https://git-scm.com/docs/githooks
+
+## Application engineering: service contracts, persistence and operations
+
+- Axum middleware and state: https://docs.rs/axum/latest/axum/middleware/ and https://docs.rs/axum/latest/axum/extract/struct.State.html
+- SQLx transaction semantics: https://docs.rs/sqlx/latest/sqlx/struct.Transaction.html
+- AWS Well-Architected retry limits: https://docs.aws.amazon.com/wellarchitected/2022-03-31/framework/rel_mitigate_interaction_failure_limit_retries.html
+- Kubernetes probe semantics and pod lifecycle: https://kubernetes.io/docs/concepts/workloads/pods/probes/ and https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
