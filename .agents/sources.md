@@ -29,3 +29,11 @@
 - [Rust Reference: functions and ABI](https://doc.rust-lang.org/reference/items/functions.html): non-unwinding and unwinding ABI behaviour.
 - [Rustonomicon: FFI](https://doc.rust-lang.org/nomicon/ffi.html): interoperable unwind boundaries.
 - [catch_unwind](https://doc.rust-lang.org/std/panic/fn.catch_unwind.html): unwind-only handling, panic hooks, payload lifetime and foreign exception limits.
+
+## Async and thread concurrency
+
+- [Tokio select](https://docs.rs/tokio/latest/tokio/macro.select.html): polling, cancellation safety and fairness.
+- [Tokio JoinHandle](https://docs.rs/tokio/latest/tokio/task/struct.JoinHandle.html): detaching versus aborting and observing termination.
+- [Tokio spawn_blocking](https://docs.rs/tokio/latest/tokio/task/fn.spawn_blocking.html): bounded concurrency and non-abortable started work.
+- [Tokio Mutex](https://docs.rs/tokio/latest/tokio/sync/struct.Mutex.html): lock choice, FIFO and cancelled waits.
+- [Rust atomic Ordering](https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html): ordering contracts.
