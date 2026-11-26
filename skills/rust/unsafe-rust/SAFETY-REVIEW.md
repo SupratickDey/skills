@@ -55,9 +55,11 @@ impl is an invariant you do not have.
 
 ## Per FFI call
 
-- Can the C side unwind into Rust? If a Rust callback can panic, wrap it so a
-  panic cannot cross the boundary — `catch_unwind` at the callback, or a
-  documented no-panic contract on the C side.
+- Which ABI and panic strategy apply? Prevent foreign exceptions from entering
+  Rust through a non-unwinding ABI. A Rust panic escaping that ABI aborts; catch
+  unwinding Rust panics if error translation is required. Do not assume
+  `catch_unwind` can catch aborts or foreign exceptions. Verify any deliberately
+  unwind-capable boundary against its interoperability contract.
 - Who owns the allocation, and which allocator frees it? Memory allocated on one
   side is freed on that side.
 - Are string encodings and NUL termination handled — `CStr` to read, `CString`

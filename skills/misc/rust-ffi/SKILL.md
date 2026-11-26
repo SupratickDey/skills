@@ -66,10 +66,16 @@ safe `xyzzy` crate that owns the wrappers.
 
 ## Nothing panics across the boundary
 
-Unwinding into a foreign frame is undefined behaviour. Every `extern "C"`
-entry point catches — `catch_unwind` at the boundary, and only there — and
-converts the panic to an error code or an out-parameter, the one place
-`/rust-errors` does not call `catch_unwind` a last resort.
+A non-unwinding ABI such as `extern "C"` must not pass an unwind across the
+boundary. An escaping Rust panic aborts the process; a foreign exception
+unwinding into Rust through such an ABI is undefined behaviour. If the foreign
+caller must receive an error rather than an abort, catch unwinding Rust panics
+at the entry point and translate them without exposing panic payloads. An
+aborting panic cannot be caught; a panic payload may panic on drop. Document
+the failure policy and test it with the actual host and supported panic profile.
+Only use an unwind-capable ABI such as `C-unwind` for an explicitly designed
+interoperability contract. Do not treat `catch_unwind` as a portable catcher for
+foreign exceptions. See `/rust-errors` for panic isolation and recovery.
 
 ## Every pointer states its ownership
 
