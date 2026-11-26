@@ -1,7 +1,8 @@
 # The deny.toml policy file
 
 `SKILL.md` carries the judgment calls; this file carries the policy in full,
-annotated. Paste the starter as-is, then adapt section by section — every
+annotated. Check the installed cargo-deny version and generated defaults, then adapt this
+illustrative starter section by section — every
 change to the file is a decision, and a decision worth writing down in the
 same place the tool reads it.
 
@@ -37,15 +38,14 @@ allow-git = []
 Key by key:
 
 - `[advisories] db-path` — where the local clone of the advisory database
-  lives. The tool refreshes it before each check; the tree is judged against
-  what the database says on the day of the run, not on the day the policy was
-  written.
+  lives. Record the database refresh time; offline or no-fetch runs may use stale
+  data. Do not treat a cached scan as current without evidence.
 - `[advisories] db-urls` — the origin of that clone, the RustSec database.
   This is the only URL in the policy, and it is functional configuration, not
   a citation.
 - `[advisories] yanked` — treat versions yanked from the registry as
-  findings. `deny` keeps the tree from depending on a version that a fresh
-  consumer could no longer build.
+  findings. `deny` flags yanked versions. An existing lockfile can still refer to a yanked
+  release; a yank is a signal for investigation, not itself proof of compromise.
 - `[advisories] ignore` — per-advisory exceptions. Both forms are below; every
   entry carries a reason and a review date.
 - `[licenses] allow` — the explicit allow-list. Nothing in the tree is
@@ -83,14 +83,14 @@ Two forms, in the order of preference. The annotated form first:
 ```toml
 [advisories]
 ignore = [
-  # RUSTSEC-0000-0000: reached only from a build-time dev tool, not shipped.
-  # Re-check when <crate> 2.0 lands. Reviewed 2026-08-15.
-  { id = "RUSTSEC-0000-0000", reason = "build-time only; not in the shipped binary" },
+    # Illustrative only: record the approved owner, expiry and re-check trigger.
+  # Assess both build-host and deployed exposure before acceptance.
+  { id = "RUSTSEC-0000-0000", reason = "approved mitigation and review expiry recorded in risk register" },
 ]
 ```
 
-The bare form is a plain ID in the same list — acceptable for one release
-cycle while the reason is being worked out, never as the resting state:
+The bare form is supported syntax for an ID, not an approved risk decision.
+Do not add bare ignores while a reason is being worked out:
 
 ```toml
 [advisories]
@@ -112,8 +112,8 @@ else to go:
 
 ```toml
 [[licenses.exceptions]]
-# example-crate ships no licence file and no licence key in the manifest.
-# The upstream README states MIT; verify before the next dependency refresh.
+# Illustrative only: verified license evidence and policy-owner approval
+# must be recorded before adding an exception.
 crate = "example-crate"
 license = "MIT"
 ```
@@ -152,10 +152,10 @@ next report must say so of.
 **A binary crate with a permissive-only policy.** The starter file stands
 almost as-is: the `allow` list is already permissive families, so the first
 run settles the licences question. An advisory on a network-facing path is an
-upgrade — direct or through the intermediary, per `cargo tree --invert`. An
-advisory that only build-time tooling reaches earns an annotated `ignore`
-entry with a re-check date, or a `[patch]` entry if the fix is merged but
-unreleased. Nothing is published, so the patch-invisibility caveat does not
+upgrade — direct or through the intermediary, per `cargo tree --invert`. A build-time advisory requires assessment of the build host and any secrets or
+artifacts it can access. Prefer remediation. An annotated `ignore` requires
+approved residual risk, controls and a review expiry; a verified upstream
+patch may be appropriate if the fix is not released. Nothing is published, so the patch-invisibility caveat does not
 apply; the patch is a complete fix until the release lands.
 
 **A library that must stay MSRV-compatible, and the fix needs a newer
@@ -169,8 +169,9 @@ the repo, with the trade stated on the record:
   downstream cost; it is the user's call, made with the cost named.
 - Patch via `[patch.crates-io]`. Fixes the local build only — invisible to
   every consumer, so the report says the advisory remains on downstream trees.
-- Vendor the fixed version. Complete, but the maintenance burden follows the
-  repo for as long as the vendored copy lives.
+- Vendor a verified fixed version where the distribution model supports it.
+  For a published library, verify how downstream consumers actually receive
+  the fix; local vendoring alone does not remediate their dependency graph.
 - Accept with an expiry. The advisory stays on the tree with a written reason,
   a reviewer, and a date that forces the question again.
 

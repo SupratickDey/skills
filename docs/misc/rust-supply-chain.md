@@ -1,10 +1,10 @@
 ## What it does
 
 Audits a Rust dependency tree — advisories, licences, banned and duplicate
-crates, and unmaintained dependencies — reading `Cargo.lock` as the authority
-on what is actually built, not `Cargo.toml`, which states ranges. The
-defining constraint: every finding ends in a decision — upgrade, replace,
-vendor, or accept with a written reason and an expiry. An unactioned
+crates, and unmaintained dependencies — reading `Cargo.lock` for resolved versions and sources, then checking the
+selected targets, features and dependency kinds to determine actual use. The
+defining constraint: every finding ends in a decision — upgrade, replace, apply a verified fix, or request owner-approved risk
+acceptance with a reason and expiry. An unactioned
 advisory list is noise, and noise trains people to ignore the tool.
 
 ## When to reach for it
@@ -20,8 +20,8 @@ it directly, as `/rust-supply-chain`.
 
 ## Prerequisites
 
-A `Cargo.lock` to read — the audit judges what is built, and a tree without a
-lockfile is a set of ranges, not a fact. When the MSRV is recorded in
+A resolved graph to inspect. A lockfile records resolved packages, not exactly
+which packages enter each artifact. Do not create or modify it without authority. When the MSRV is recorded in
 `docs/agents/rust.md`, it bounds what counts as a fix: a fix that bumps a
 dependency past the MSRV is not a fix.
 
@@ -30,7 +30,7 @@ dependency past the MSRV is not a fix.
 | Tool | Answers | Runs against |
 |---|---|---|
 | `cargo audit` | One question — is anything in the tree known-vulnerable | The RustSec advisory database |
-| `cargo deny` | Four — advisories, bans, licenses, sources | A `deny.toml` policy, or built-in defaults that encode no policy |
+| `cargo deny` | Four — advisories, bans, licenses, sources | A `deny.toml` policy, or built-in defaults |
 
 A repo running `cargo deny check` does not need `cargo audit` separately; a
 repo that wants only advisory checking and no policy file is better off with
@@ -40,8 +40,10 @@ lands in the target repo only on explicit request.
 
 ## Reading a finding properly
 
-An ID and a severity are the start; the question is whether this repo
-reaches the affected code. `cargo tree --invert` shows who pulled a crate
+An ID and severity are the start; assess affected versions, features, targets,
+and exploit prerequisites. Build-time dependencies can compromise the build
+host even when absent from the deployed binary. Record uncertainty and do not
+automatically downgrade an advisory based on dependency kind. `cargo tree --invert` shows who pulled a crate
 in, which settles direct (upgrade the dependency) versus transitive (upgrade
 the intermediary, or wait for it). "No upstream fix yet" is a real outcome
 with real options — pin, patch via `[patch.crates-io]`, vendor, or replace —
@@ -50,8 +52,8 @@ and recording the choice matters more than which one is picked.
 Unmaintained is a finding, not a warning to mute: RustSec issues `RUSTSEC-*`
 unmaintained notices with no vulnerability attached, and they are a
 maintenance-planning signal with a horizon, not an emergency. Duplicates are
-a licence and a binary-size problem before they are a taste problem — every
-duplicate means two versions compiled in and two licence obligations — and
+a licence and a binary-size problem before they are a taste problem — duplicates can affect binary size, licensing or public type identity; not
+every resolved package is built into a shipped artifact — and
 the fix is usually raising a lower bound so the two ranges unify, not
 banning the crate. The licence policy itself runs on an axis from
 permissive-only to copyleft-tolerated; the skill names the axis, the repo
@@ -59,9 +61,9 @@ decides, and the decision is recorded in the policy file.
 
 ## Versions, lockfile, and licences
 
-Each added crate lengthens compiles, grows the binary, and widens the set of
-authors you trust, `build.rs` and proc macros included. Cargo lets incompatible versions coexist and never
-two compatible ones, so a duplicate means a range stuck on an older line.
+Dependencies expand the trust boundary, including build scripts and proc
+macros. Cargo generally unifies compatible requirements; incompatible versions
+or distinct sources may coexist. Evaluate actual build and runtime exposure.
 
 | Requirement | Meaning |
 |---|---|
@@ -70,19 +72,19 @@ two compatible ones, so a duplicate means a range stuck on an older line.
 | `"=1.4.2"` | one exact version; avoid in libraries |
 | `"*"` | anything; avoid |
 
-Commit `Cargo.lock` for binaries. `cargo tree --edges features` shows what
-turns a feature on. On licences the skill stays neutral about what a repo may
-accept, but notes that permissive-only dependencies keep a permissive crate
-freely redistributable, that the licence and default features are part of the
-public contract, and that the ecosystem default for a published crate is
-`MIT OR Apache-2.0` with both licence files.
+Commit `Cargo.lock` for binaries and follow library policy; library consumers
+resolve their own graph. Use locked builds where appropriate and verify the
+supported toolchain and feature matrix. Review provenance, build scripts and
+lockfile diffs before adding or updating dependencies. Isolate builds from
+production secrets. License obligations depend on actual terms and distribution;
+obtain policy-owner approval. The offered ecosystem default for a published
+crate is `MIT OR Apache-2.0` with both license files.
 
 ## Common questions
 
 **What does "accept" mean?** A written reason and an expiry — an annotated
-entry with the reachability, the re-check trigger, and a review date. A bare
-ID is acceptable for one release cycle while the reason is worked out, never
-as the resting state.
+entry with the reachability, the re-check trigger, and a review date. Acceptance requires an authorized risk owner and compensating controls.
+A bare ID is not approval and must not be added to suppress an unresolved finding.
 
 **Where does the `deny.toml` come from?** Only on an explicit request in the
 same invocation. It is the one file this skill writes, and writing it
@@ -104,7 +106,9 @@ wiring for that is `/setup-rust-ci`; a pre-commit hook is never the place.
 - The report says what the tree was read from and quotes exit codes —
   `cargo deny check` exits non-zero on any denied finding, and that is what
   a CI job keys on.
-- An accepted finding carries a re-check trigger and a date.
+- An accepted finding carries an owner, justification, controls, expiry and
+  re-check trigger. The report records advisory database freshness, tool version,
+  selected targets and verification coverage.
 - No `deny.toml` appeared in the repo unless the user asked for one.
 - Any tool that could not run is named — a clean audit that did not run is
   never reported.
