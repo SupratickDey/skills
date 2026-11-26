@@ -108,3 +108,11 @@
 - PyO3 migration and interpreter attachment: https://pyo3.rs/main/migration and https://pyo3.rs/main/free-threading.html
 - PyO3 performance: https://pyo3.rs/main/performance.html
 - Maturin distribution tutorial: https://www.maturin.rs/tutorial
+
+## JavaScript runtime parity and native/WebAssembly boundaries
+
+- ECMAScript specification, conversion operations and property keys: https://tc39.es/ecma262/
+- Node-API documentation: https://nodejs.org/api/n-api.html
+- NAPI-RS documentation: https://napi.rs/
+- wasm-bindgen guide: https://rustwasm.github.io/docs/wasm-bindgen/
+- Rust wasm32-unknown-unknown target support: https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html

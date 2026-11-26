@@ -2,14 +2,16 @@ Under end state A there is no binding layer: the rest of this file
 does not apply, and the seam is the process boundary in the
 second-to-last section. The end-state decision itself is
 `/port-to-rust`. Under C the binding layer is scaffolding that gets
-deleted at cut-over and may be crude; under B it is the published
+deleted at cut-over, but must remain safe and preserve required parity; under B it is the published
 package surface, and every choice below is a public API decision.
 
 ## napi-rs, the Node route (B and C)
 
-A native addon is a `cdylib` that Node, Deno, and Bun `require`
-exactly like the JS module it replaces, which is what makes the swap
-invisible to call sites. A minimal addon:
+A native addon is a cdylib exposed through Node-API. Confirm the host's
+supported Node-API version, permissions, platform and module loader. Preserve
+public ESM/CJS exports, types and package entry points with compatible glue.
+The following snippets illustrate a pinned major API shape; use the actual
+project's build setup and dependency policy.
 
 ```rust,ignore
 use napi_derive::napi;
@@ -46,28 +48,30 @@ napi-derive = "3"
 }
 ```
 
-`napi build` emits the `.node` addon beside a generated JavaScript
-glue file that exports the names the JS module had, so the existing
-`require('fastcore')` is unchanged. Async crosses the same way: an
-`#[napi]` function returning a future resolves a JavaScript Promise,
-and blocking work belongs on the napi thread pool rather than on the
-Node event loop thread — a blocking call on the loop thread stalls
-every other callback in the process.
+Inspect generated addon artifacts and glue with the pinned napi CLI.
+Do not assume generated exports match the public package. Supported async
+bindings can return Promises; inspect the actual runtime and worker executor.
+Keep long blocking or CPU work off the event loop using bounded approved
+execution resources. Treat JavaScript environment handles and references as
+thread-affine unless the API explicitly permits transfer. Use supported
+thread-safe callback mechanisms, and verify cancellation, environment cleanup
+and worker teardown. Never retain a JavaScript handle past its valid lifetime.
 
 ## wasm-bindgen, the browser and edge route
 
-Two questions come first: what compiles, and what it costs. What does
-not compile: threads without cross-origin isolation, a filesystem,
-arbitrary sockets — and a hard cap on the crates that build for the
-target at all. The cost model: every string and object crossing the
-boundary is serialized, so a chatty interface is slower than the
-JavaScript it replaced. The corollary is the Python one: port the
-loop, not the loop body — the module worth moving is the CPU-bound
-one with a clean boundary, where the boundary cost amortizes.
+Verify the actual host, target triple, imports and capabilities. wasm32-unknown-unknown
+does not supply general host filesystem or socket APIs; WASI and other hosts
+have different contracts and are not interchangeable with browser glue.
+Threads and shared memory need compatible toolchains, hosts and deployment
+configuration, including browser cross-origin isolation where required.
+Check host-specific APIs, limits, startup and binary size before choosing
+a target. Edge runtimes are not uniformly Node-compatible.
 
-The output is an npm package: `wasm-pack build --target web` emits a
-`pkg/` directory the JavaScript imports from, and the same build for
-an edge runtime takes `--target nodejs`.
+Choose wasm-bindgen/wasm-pack output for the actual consumer: web, bundler,
+nodejs or another supported configuration. Verify initialization and module
+loading in the deployed host. Measure boundary conversions and copies;
+not every scalar is serialized, and a typed view is not automatically an
+owned buffer.
 
 ```rust,ignore
 use wasm_bindgen::prelude::*;
@@ -89,14 +93,15 @@ branches the corpus never covers.
 
 ## Data crossing the boundary
 
-Buffers and typed arrays cross without a copy where the binding
-supports it; every copy that is not avoided is a conversion somewhere
-in the profile. `serde_json` round-tripping at the boundary —
-serializing on one side, parsing on the other — pays for itself only
-when the two sides genuinely need different representations; where
-both could share a typed structure, the JSON is tax. And JavaScript
-strings are UTF-16, so every string crossing the boundary is a
-re-encode either way.
+Buffers and typed arrays may be borrowed or transferred only under the
+binding's explicit lifetime, alignment, ownership and mutability contract.
+Check offsets, lengths, detachment, shared memory, concurrent mutation and
+external-buffer finalizers. A WebAssembly memory grow can invalidate or
+leave stale JavaScript views; reacquire views as required by the host.
+Do not return a view of temporary Rust storage. Verify how the pinned
+binding handles UTF-16, UTF-8, lone surrogates, BigInt and Number conversions.
+JSON conversion can change numeric and presence semantics; use it only
+where compatible with the contract. Measure actual copies and end-to-end cost.
 
 ## The no-bindings route, for end state A
 
@@ -113,11 +118,11 @@ two.
 
 ## Packaging and CI
 
-Under B this is a deliverable: prebuilt binaries per platform for
-napi-rs, or `wasm-pack` output targets, matching every platform and
-runtime the existing package supported, with the fallback path —
-build-from-source, or a JS implementation — decided rather than
-discovered by a user on an unsupported platform. Under C it is
-throwaway build glue; the only requirement is that the differential
-job rebuilds the addon rather than testing a stale artifact. Under A
-there is nothing to package beyond the Rust binary.
+Under B verify the approved OS, architecture, libc, Node-API/runtime and
+module-system matrix, or actual WebAssembly host and bundler combinations.
+Install the packed artifact into clean consumer projects and verify public
+exports, declarations, loader behavior, supported fallback, and integration
+suite. Inspect package contents and lockfile policy; a local addon import
+is not distribution verification. Under C rebuild and verify the fresh
+scaffold on required hosts. Under A verify the standalone artifact. Report
+missing runtime evidence and never publish without authorization.
