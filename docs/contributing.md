@@ -25,15 +25,12 @@ back here, however good the content is.
 
 ## Branch model
 
-`dev` is where change integrates. `main` is release-only: it holds exactly the
-history that has gone through a release, nothing more. The two never diverge in the
-usual sense — the merge from `dev` into `main` is fast-forward only, so `main`
-always ends up equal to some earlier `dev` commit rather than gaining a merge commit
-of its own.
-
-Open pull requests against `dev`. Moving `dev` into `main` is a maintainer action
-performed by a bot account with elevated permissions; a contributor push cannot do
-it directly, and that is by design — see ADR 0004 for why.
+Open development PRs against dev. Main remains release-only. A maintainer
+promotes a verified, versioned dev candidate using a normal dev-to-main pull
+request and a merge commit, preserving history. Do not squash, rebase or
+force-push the release. The new main tree must match the approved dev tree.
+See ADR 0008 and .agents/releasing.md. No elevated release token or custom
+merge bot is required.
 
 ## Local skill harness
 
@@ -50,20 +47,16 @@ Restart the chosen agent and verify its visible skill list and invocation.
 
 ## Adding a changeset
 
-Most pull requests into `dev` need a changeset so the next release notes describe
-the change. Three ways to satisfy this:
+For a user-visible change, run npx changeset and commit the generated fragment
+under .changeset/ with the PR. Use an appropriate semantic version bump.
+For a change that does not need a release note, a maintainer may apply the
+skip-changelog label. Release-preparation PRs use this label because they
+consume existing fragments.
 
-1. Run `npx changeset` locally and follow the prompts. Commit the generated file
-   under `.changeset/` alongside the rest of the change.
-2. Do nothing. If the pull request title follows Conventional Commits (`feat: ...`,
-   `fix: ...`, `docs: ...`, `refactor: ...`), the `changeset-check` workflow
-   generates a changeset fragment from the title and pushes it to the branch —
-   only for pull requests from a branch in this repo, since a bot push to a fork
-   is not possible. A `feat:` title bumps minor; everything else bumps patch.
-3. Apply the `skip-changelog` label if the change has no user-visible effect
-   worth a changelog entry (typo fixes, CI-only changes, and so on).
-
-`changeset-check` fails the pull request if none of the three apply.
+The changeset-check workflow verifies a new or modified fragment in the PR's
+own diff. It does not write commits, and an unrelated fragment already on dev
+does not satisfy the check. Changesets uses its built-in Git-based changelog
+generator; no GitHub API authentication is needed.
 
 ## Protected files
 

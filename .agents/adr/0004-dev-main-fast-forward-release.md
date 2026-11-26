@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Superseded by ADR 0008 for this fork. The original decision is retained below
+for historical context.
 
 ## Context
 
