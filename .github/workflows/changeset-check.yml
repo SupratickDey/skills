@@ -20,19 +20,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Verify a changeset in this PR
+        shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           git diff --name-only --diff-filter=AMR "$BASE_SHA"...HEAD -- .changeset/ > "$RUNNER_TEMP/changed-fragments.txt"
-          grep -E '^\.changeset/[^/]+\.md
-            grep -v -Fx '.changeset/README.md' > "$RUNNER_TEMP/changeset-files.txt" || true
-          if [ ! -s "$RUNNER_TEMP/changeset-files.txt" ]; then
-            echo "::error::Add a changeset to this PR or obtain the skip-changelog label."
-            exit 1
-          fi
-          cat "$RUNNER_TEMP/changeset-files.txt"
- "$RUNNER_TEMP/changed-fragments.txt" |
-            grep -v -Fx '.changeset/README.md' > "$RUNNER_TEMP/changeset-files.txt" || true
+          awk '$0 ~ /^\.changeset\/[^/]+\.md$/ && $0 != ".changeset/README.md"' "$RUNNER_TEMP/changed-fragments.txt" > "$RUNNER_TEMP/changeset-files.txt"
           if [ ! -s "$RUNNER_TEMP/changeset-files.txt" ]; then
             echo "::error::Add a changeset to this PR or obtain the skip-changelog label."
             exit 1
