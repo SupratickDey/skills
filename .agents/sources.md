@@ -46,3 +46,10 @@
 - [RustSec](https://rustsec.org/): advisory database scope.
 - [cargo-deny checks](https://embarkstudios.github.io/cargo-deny/checks/index.html): advisories, licenses, bans and sources, with default configuration.
 - [cargo-deny common options](https://embarkstudios.github.io/cargo-deny/cli/common.html): no-fetch and lockfile behaviour.
+
+## Runtime configuration and focused debugging
+
+- [std::env::var](https://doc.rust-lang.org/std/env/fn.var.html) and [Rust 2024 newly unsafe functions](https://doc.rust-lang.org/edition-guide/rust-2024/newly-unsafe-functions.html): missing versus invalid Unicode and process environment mutation.
+- [Serde container attributes](https://serde.rs/container-attrs.html): validated conversion and unknown-field policies.
+- [Rust API Guidelines: dependability](https://rust-lang.github.io/api-guidelines/dependability.html): input validation and predictable failure.
+- [OWASP secrets management](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html): secret lifecycle, access and redaction.
