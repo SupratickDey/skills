@@ -91,3 +91,13 @@
 - SQLx transaction semantics: https://docs.rs/sqlx/latest/sqlx/struct.Transaction.html
 - AWS Well-Architected retry limits: https://docs.aws.amazon.com/wellarchitected/2022-03-31/framework/rel_mitigate_interaction_failure_limit_retries.html
 - Kubernetes probe semantics and pod lifecycle: https://kubernetes.io/docs/concepts/workloads/pods/probes/ and https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
+
+## Specialized engineering: Cargo, portability, command-line tools and distributed behavior
+
+- Cargo workspaces and features: https://doc.rust-lang.org/cargo/reference/workspaces.html and https://doc.rust-lang.org/cargo/reference/features.html
+- Cargo resolver and metadata: https://doc.rust-lang.org/cargo/reference/resolver.html and https://doc.rust-lang.org/cargo/commands/cargo-metadata.html
+- Rust platform support and path/process APIs: https://doc.rust-lang.org/rustc/platform-support.html and https://doc.rust-lang.org/std/path/ and https://doc.rust-lang.org/std/process/struct.Command.html
+- Rust OS strings and memory management: https://doc.rust-lang.org/std/ffi/struct.OsString.html and https://doc.rust-lang.org/book/ch15-06-reference-cycles.html
+- Heaptrack: https://github.com/KDE/heaptrack
+- Apache Kafka delivery semantics: https://kafka.apache.org/documentation/#semantics
+- PostgreSQL transaction isolation: https://www.postgresql.org/docs/current/transaction-iso.html

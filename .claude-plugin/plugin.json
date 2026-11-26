@@ -55,6 +55,11 @@
     "./skills/rust/rust-api-development",
     "./skills/rust/rust-database",
     "./skills/rust/rust-resilience",
-    "./skills/workflow/rust-production-readiness"
+    "./skills/workflow/rust-production-readiness",
+    "./skills/workflow/rust-workspace-management",
+    "./skills/rust/rust-cross-platform",
+    "./skills/rust/rust-cli-development",
+    "./skills/rust/rust-memory-profiling",
+    "./skills/rust/rust-distributed-systems"
   ]
 }

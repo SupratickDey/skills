@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Workspace Management"
+  short_description: "Cargo package graph, features and release boundaries"
