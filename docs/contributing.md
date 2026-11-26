@@ -1,5 +1,13 @@
 # Contributing
 
+## Agent instructions
+
+`AGENTS.md` is the canonical authoring and engineering policy for both coding
+agents. `CLAUDE.md` imports it; keep platform-specific additions in the wrapper
+only when necessary. The rules govern this repository and do not automatically
+install policy in consumer projects. Read the applicable `.agents/` rules
+before editing skills.
+
 ## Propose before you build
 
 Open an issue before writing anything. Describe the skill or the change you have
