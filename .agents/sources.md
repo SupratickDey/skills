@@ -62,3 +62,10 @@
 - [OWASP Authorization Patterns](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Patterns_Cheat_Sheet.html): policy decisions and enforcement boundaries.
 - [Martin Fowler: Refactoring](https://martinfowler.com/books/refactoring.html) and [Refactoring Boundary](https://martinfowler.com/bliki/RefactoringBoundary.html): small behavior-preserving transformations.
 - [NIST Secure Software Development Framework](https://csrc.nist.gov/Projects/ssdf) and [SSDF mapping](https://pages.nist.gov/nccoe-devsecops/mapping-ssdf.html): security requirements, risks and design traceability.
+
+## API evolution, invariants and serialization
+
+- [Cargo SemVer compatibility](https://doc.rust-lang.org/cargo/reference/semver.html): downstream method ambiguity, dyn compatibility and API evolution.
+- [Rust assert](https://doc.rust-lang.org/std/macro.assert.html) and [debug_assert](https://doc.rust-lang.org/std/macro.debug_assert.html): release-mode invariant enforcement.
+- [Serde container attributes](https://serde.rs/container-attrs.html) and [field attributes](https://serde.rs/field-attrs.html): Display conversion errors, defaults and aliases.
+- [Serde flatten](https://serde.rs/attr-flatten.html): incompatible unknown-field policy.

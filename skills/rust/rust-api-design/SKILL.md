@@ -32,9 +32,10 @@ mod internal;                            // the tree stays private
 `Parser` is reachable by one path only: renaming the module, moving the file,
 splitting the crate — none of it is a breaking change, because none of it is visible.
 
-The surface refuses three shapes: an item public at two paths; an `Arc`, `Rc`,
-`Box` or `RefCell` in a public signature; and a dependency type in a signature,
-making that dependency part of the semver contract. The depth, including fields,
+Prefer one deliberate public path and avoid exposing implementation-only
+ownership wrappers or dependency types. Preserve existing paths and types for
+compatibility. A public Box, Arc or dependency type can be justified when
+ownership, sharing or interoperability is part of the intended contract. The depth, including fields,
 modules, crate size, parameter and return types, re-exports and `#[must_use]`, is
 in `SURFACE.md`; how a public type is built (constructors, `Default`, builders) is
 in `CONSTRUCTION.md`.
@@ -56,7 +57,7 @@ applies, including a compile-time or code-size budget and code loaded at runtime
 | Want | Choose | Cost |
 |---|---|---|
 | Monomorphized speed, inlining, no vtable | `impl Trait` / `<T: Trait>` | Code bloat; every call site instantiates; one concrete type per parameter; verbose signatures |
-| Heterogeneous collection, plugin registry, smaller binary, faster compiles, code loaded at runtime | `dyn Trait` | One copy plus a vtable dispatch; the trait must be object-safe |
+| Heterogeneous collection, plugin registry, smaller binary, faster compiles, code loaded at runtime | `dyn Trait` | Dynamic dispatch; allocation only if the chosen storage requires it; trait must be dyn-compatible |
 | Argument position, caller convenience | `impl Trait` argument | The caller cannot turbofish |
 | Return position in a public API | named type or `impl Trait` | `impl Trait` hides the type — a deliberate choice, not a shortcut |
 
@@ -116,7 +117,8 @@ impl WidgetBuilder for Widget {
 
 The headline cases: adding a variant to a public enum breaks exhaustive matches
 (unless the enum is `#[non_exhaustive]`); adding a required trait method breaks
-implementers, a default body does not; adding a field to a public struct that is
+implementers; a default body can still introduce method ambiguity or affect
+behavior and dyn compatibility; adding a field to a public struct that is
 not `#[non_exhaustive]` breaks literal construction; narrowing an argument type
 breaks callers; widening a return type breaks callers who programmed against
 the old one. The full table, including the non-obvious ones, the `#[non_exhaustive]`
@@ -135,6 +137,16 @@ type should be a newtype carrying an invariant is `/type-driven-design`. Whether
 public function should be `async`, and what that commits the crate to, is
 `/async-rust`. Whether a `pub unsafe fn` is justified and how its contract is
 documented is `/unsafe-rust`.
+
+## Evolving a released contract
+
+Identify the actual released baseline, documented behavior, supported features,
+targets and MSRV. Review public re-exports, inferred types, trait implementations,
+auto traits, opaque return types, feature combinations and error behavior.
+Do not remove a legacy path merely to enforce a preferred module layout.
+Deprecate with a migration path where appropriate. A tool that finds no API
+break does not prove behavioral or wire compatibility; test representative
+downstream callers, including existing trait implementations and method calls.
 
 ## Verification
 

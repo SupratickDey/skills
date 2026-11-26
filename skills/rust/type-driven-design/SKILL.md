@@ -14,8 +14,9 @@ published type costs is `/rust-api-design`.
 
 ## The principle
 
-A type that cannot represent the bad state removes the runtime check, the test
-for it, and the bug report about it. Ask of every struct: how many field
+A type that cannot represent a bad state can remove redundant internal checks.
+Keep tests at every untrusted construction boundary and for any remaining runtime
+invariant. Ask of every struct: how many field
 combinations are constructible, and how many are valid? The gap between those two
 numbers is the surface where bugs live. The compiler is also the one reviewer that
 never skims: an agent or a new teammate who misses an unwritten rule still cannot
@@ -55,8 +56,9 @@ combination — both `None` — stops being constructible.
 A function that takes `&str` and checks it is a valid email address checks again
 at the next call site, and the next, because the type carries no proof. A
 function that takes `Email` — constructible only through
-`Email::parse(&str) -> Result<Email, EmailError>` — checks once at the boundary
-and never again. The type is the proof the check ran.
+`Email::parse(&str) -> Result<Email, EmailError>` — checks the structural invariant at construction. The type is evidence only if
+all safe construction and mutation paths uphold it. External facts such as
+revocation, authorization and resource availability may change and need rechecks.
 
 ```rust,ignore
 struct Email(String); // private field: the constructor is the only way in
@@ -72,9 +74,10 @@ fn deliver(to: &Email) { /* no validation possible here — none needed */ }
 
 The private field is the load-bearing part. A public field makes the
 constructor a suggestion, and the invariant dies the day someone builds the
-struct by literal. Validation has three tiers in order of preference — static
-types, dynamic checks, an opt-out `_unchecked` sibling — spelled out in
-`MODELLING.md`.
+struct by literal. Prefer static invariants and checked runtime construction. Never expose a safe
+unchecked constructor that violates the type's promised invariant. An unsafe
+constructor requires a documented safety contract when memory safety depends on
+it. See `MODELLING.md`, subject to these rules.
 
 ## Newtypes as invariant carriers
 
@@ -102,6 +105,17 @@ builder variant, and the costs live in `TYPESTATE.md`; the one-line version is
 that typestate is for small, fixed state machines where out-of-order use is a
 real bug class.
 
+## Audit every entrance and mutation
+
+Inspect constructors, Default, From, TryFrom, Deserialize, builder completion,
+public fields, mutable accessors, interior mutability and all state transitions.
+Derive only traits that preserve the invariant. Use a fallible conversion for
+untrusted input; route wire validation to `/rust-serde`. Do not rely on
+`debug_assert!` for production input, authorization or memory safety. Retain
+runtime checks for environmental or temporal facts, and for the boundaries
+where raw input enters the model. Avoid changing released types without checking
+`/rust-api-design`.
+
 ## When to stop
 
 Type-level modelling has a cost: worse error messages, heavier generics, and a
@@ -128,8 +142,9 @@ Run clippy at the lint level configured in the repo — never on top of one the
 repo already set. Then the specific evidence this skill claims: after the
 change, the runtime checks the type made impossible should be *deleted*, not
 left in place. Grep for the now-impossible branch and confirm it is gone, and
-confirm the tests that asserted the old runtime rejection were removed or
-rewritten to a compile-fail expectation. If the repo already uses `trybuild`,
+retain runtime rejection tests at construction and mutation boundaries. Replace
+only tests of truly impossible internal states with compile-fail coverage where
+appropriate. If the repo already uses `trybuild`,
 add a compile-fail case proving the illegal construction no longer compiles; if
 it does not, do not introduce the dependency as part of this change — state the
 compile-fail expectation in a doc comment instead.
