@@ -53,3 +53,12 @@
 - [Serde container attributes](https://serde.rs/container-attrs.html): validated conversion and unknown-field policies.
 - [Rust API Guidelines: dependability](https://rust-lang.github.io/api-guidelines/dependability.html): input validation and predictable failure.
 - [OWASP secrets management](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html): secret lifecycle, access and redaction.
+
+## Production engineering: architecture, security, refactoring and planning
+
+- [Rust Book: packages, crates and modules](https://doc.rust-lang.org/book/ch07-00-managing-growing-projects-with-packages-crates-and-modules.html): Rust module and crate boundaries.
+- [Cargo workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html): workspace organization and package selection.
+- [OWASP Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html): deny by default, per-request checks and authorization testing.
+- [OWASP Authorization Patterns](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Patterns_Cheat_Sheet.html): policy decisions and enforcement boundaries.
+- [Martin Fowler: Refactoring](https://martinfowler.com/books/refactoring.html) and [Refactoring Boundary](https://martinfowler.com/bliki/RefactoringBoundary.html): small behavior-preserving transformations.
+- [NIST Secure Software Development Framework](https://csrc.nist.gov/Projects/ssdf) and [SSDF mapping](https://pages.nist.gov/nccoe-devsecops/mapping-ssdf.html): security requirements, risks and design traceability.

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Refactoring"
+  short_description: "Small behavior-preserving transformations with regression evidence"

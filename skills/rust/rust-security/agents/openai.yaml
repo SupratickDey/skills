@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Security"
+  short_description: "Trust boundaries, authorization, secure defaults and security verification"
