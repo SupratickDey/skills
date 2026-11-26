@@ -26,9 +26,13 @@ the toolchain supports them — a recent edition, so check the repo MSRV first.
 
 ## Iterators
 
-Reach for the iterator pipeline before the index loop — `for i in 0..v.len() { ...
-v[i] ... }` almost always has an iterator equivalent, and the iterator version fails
-to compile on bad bounds instead of panicking at runtime. Think of a pipeline as a source (`iter`, a range), then adapters that reshape lazily
+Prefer direct iteration or an iterator pipeline to manual indexing when it makes the
+operation clearer and preserves behaviour. Iterating over a slice avoids indexing
+that slice manually; indexing inside a closure can still panic. Use `get` when an
+index may be absent, and handle the returned `Option`. `zip` stops when either input
+ends, so check lengths first when equal lengths are part of the contract. Preserve
+ordering, error handling and side effects when replacing an existing loop.
+Think of a pipeline as a source (`iter`, a range), then adapters that reshape lazily
 (`filter`, `map`, `take`, `zip`), then one consumer that drives it and produces a result
 (`collect`, `sum`, `fold`, `find`, `any`). Nothing runs until the consumer does. The
 pipeline says *what* the result is; the loop with a mutable accumulator says *how* to
@@ -78,9 +82,10 @@ implement and `Into` as the thing you ask for. Absence is `Option`, never a magi
 such as `-1` or an empty string, and a fallible result is `Result`. The inherent
 constructor that may sit beside an important `From` impl is covered in `NAMING.md`.
 
-Direction matters for numbers: widening is lossless, so `u32::from(x_u16)` exists
-(`impl From<u16> for u32`), while narrowing is fallible and gets `TryFrom`, never a
-`From<u32> for u16` that would truncate.
+Use `From` for infallible, lossless, value-preserving and obvious conversions, such
+as `u32::from(x_u16)`. Use `TryFrom` for fallible conversions such as narrowing
+`u32` to `u16`. A wider representation is not necessarily lossless, particularly
+when converting integers to floating-point values.
 
 ```rust
 fn widen(x: u16) -> u32 {
@@ -127,9 +132,11 @@ The comparison and copy traits come with rules of their own:
   with floats, since `NaN != NaN`.
 - **`Hash`** must agree with `Eq`: values that compare equal hash equal. Derive both
   together, or write both by hand over the same fields.
-- **`Ord`** must accompany `PartialOrd`, and the two must agree; implement `PartialOrd`
-  by calling `Some(self.cmp(other))`. A type with only `PartialOrd` is partly ordered and
-  will not sort or serve as a `BTreeMap` key.
+- **`Ord`** requires `PartialOrd`, `Eq` and a total order. For a genuinely partial
+  order, implement `PartialOrd` without `Ord` and return `None` for incomparable
+  values. When implementing both manually, implement `PartialOrd` as
+  `Some(self.cmp(other))` and ensure comparison and equality agree. A partial order
+  alone does not satisfy the `Ord` bound of `sort` or `BTreeMap` insertion.
 
 For an enum, `#[derive(Default)]` with `#[default]` on the intended variant is the
 same rule — `BOILERPLATE.md` in this directory has the pair.
@@ -191,7 +198,10 @@ the crate exports are `/rust-api-design`.
 
 ## Verification
 
-Same behavior, different shape — run the standard trio:
+Preserve observable behaviour, including error paths and edge cases. Add a focused
+regression test when a rewrite changes traversal or comparison logic. Inspect the
+workspace, supported feature combinations, edition and MSRV, and use the project's
+configured checks. For a typical single-crate project, run:
 
 ```bash
 cargo clippy --all-targets   # add -- -D warnings only if the repo has no lint config

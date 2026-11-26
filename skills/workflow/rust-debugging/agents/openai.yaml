@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Debugging"
+  short_description: "Reproduce defects, isolate root causes and verify focused fixes"

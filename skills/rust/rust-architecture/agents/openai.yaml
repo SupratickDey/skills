@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Architecture"
+  short_description: "Cohesive modules, dependency direction and justified abstractions"

@@ -22,17 +22,20 @@ held across `.await` points (`/async-rust`). The user can run it directly, as
 
 - **The one-sentence rule.** A clone that buys a real thing — a value that must
   outlive the borrow, a cheap `Arc` bump for a second task — is fine. A clone
-  that only silences an error message is a deferred design decision.
+  that only silences an error message is a deferred design decision. Inspect
+  whether the clone creates an independent snapshot or shares identity; removing
+  it can change observable behaviour.
 - **Read the error, not the workaround.** `E0502` and `E0499` name a scope
   problem; shorten the borrow before copying the data.
 - **Borrow splitting.** Destructure `let Self { connections, log, .. } = self;`
   so two fields borrow independently; `split_at_mut` for disjoint slice halves;
   extract a free function taking the two fields when destructuring is not enough.
 - **Cheapest argument types.** `&str` over `&String`, `&[T]` over `&Vec<T>` — a
-  signature that takes ownership of a value it only reads forces a clone at every
-  call site, and the bug is in the signature. Likewise `&T` over `&Box<T>` and
+  read-only signature taking ownership forces borrowed callers to copy, but owned
+  callers can move. Preserve existing public contracts unless changes are authorized. Likewise `&T` over `&Box<T>` and
   `Option<&T>` over `&Option<T>` (clippy `borrowed_box`, `ptr_arg`). When the
-  function needs ownership, take it by value and never clone a borrow inside;
+  function always needs ownership, prefer taking it by value; conditional copying
+  or an existing API contract may justify borrowing;
   bound by `Copy` only when the body needs it.
 - **`Cow` for genuine borrow-or-own.** The common path borrows, the rare path
   allocates; anything else is a plain owned type.
@@ -77,8 +80,7 @@ a one-sentence justification a reviewer would accept (an owned value that must
 outlive the borrow) stays, with the justification in a comment.
 
 **My service type derives `Clone` — is that a smell?** No, when it clones an
-`Arc` handle — the outer type holds an `Arc<Inner>`, and the derive copies one
-pointer, so every task gets its own handle to the same client. Yes, when it
+`Arc` handle — the outer type holds an `Arc<Inner>`, and the derive increments a reference count and shares the same allocation, so every task gets its own handle to the same client. Yes, when it
 copies the data: a `Clone` that deep-copies a pool or a buffer is the
 unexplained clone the one-sentence test exists to catch.
 
@@ -100,10 +102,12 @@ function that takes the two fields as separate arguments.
 - `Rc<RefCell<_>>` appears only where the four-question test in `SHARED-STATE.md`
   passes.
 - Handle clones are recognisable as such — a service type that derives `Clone`
-  copies the `Arc` pointer, not the data it owns.
+  increments the `Arc` reference count and shares the allocation, not an
+  independent copy of the data.
 - Borrow conflicts between two fields are resolved by destructuring, not by
   cloning a field.
-- `cargo test` passes and no clone was removed on a path the tests do not cover.
+- Relevant repository checks pass, including tests of aliasing, snapshots and
+  resource lifetime when clone semantics changed.
 
 ## Where it fits
 

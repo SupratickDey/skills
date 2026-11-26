@@ -9,7 +9,7 @@ the port — belongs to `/port-to-rust`.
 
 | Shape | How it works | Tradeoff |
 |---|---|---|
-| Recorded corpus | Capture real inputs and the outputs the existing implementation produced; commit both; assert the Rust implementation reproduces them | Cheapest to build; covers only what was recorded |
+| Recorded corpus | Capture approved, sanitized inputs and source outputs; retain them in an authorized fixture store; assert the Rust implementation reproduces them | Cheapest to build; covers only what was recorded |
 | Side-by-side execution | Invoke both implementations on each input in the same test run | Catches inputs no one thought to record; requires the source implementation to stay runnable |
 | Property-driven | Generate inputs with `proptest` over a shared generator; assert both produce equal output | Finds the edge cases nobody wrote down; needs a generator that produces *valid* inputs or it tests error paths only |
 
@@ -20,6 +20,26 @@ runnable; it is the bridge that catches what the corpus missed, and it retires
 with the source. Add property-driven for input spaces the corpus is thin on —
 malformed-but-parseable structures, edge-sized integers — where generating
 *valid* inputs is the hard part.
+
+## Corpus quality and privacy
+
+Capture only authorized data; prefer synthetic fixtures and approved redaction
+that preserves the behaviour being tested. Do not commit credentials, personal
+information, confidential payloads or raw production traces. Keep access and
+retention appropriate to the data, and report case IDs rather than sensitive
+payloads. Derive expected results from the independent source, not the port.
+Keep a representative validation partition out of implementation prompts and
+fixture-driven tuning; freeze it before implementation and record its revision.
+
+Exercise empty and large inputs, Unicode and encoding boundaries, signed and
+unsigned integer limits, overflow, malformed inputs, ordering, error classes,
+and NaN, infinities and signed zero when the contract admits those values.
+Use domain-approved absolute and relative tolerances for finite floats; do not
+silently equate NaN, infinity or signed zero. Compare side effects only through
+isolated, deterministic test doubles or replay that cannot repeat live writes.
+Report the actual counts by input class, mismatches and skips. Required parity
+checks must fail if the source cannot run or if no cases were compared; an
+optional local run may report a skip but is not evidence of parity.
 
 ## Normalizing before comparing
 
@@ -51,7 +71,7 @@ port is deliberately different. Both answers are legitimate; neither is
 decided silently by the agent doing the port.
 
 The record for each difference: the input that triggered it, both outputs
-verbatim, which side is the contract and why, and the decision — fix the port,
+with sensitive values removed or stored only in the authorized fixture store, which side is the contract and why, and the decision — fix the port,
 or name the difference as one the parity contract must rule on. The contract
 itself is not written here; it belongs to `/port-to-rust`.
 A quarantined input with no written reason is a difference the team has
@@ -127,10 +147,9 @@ fn normalize(out: &str) -> String {
 }
 ```
 
-Side-by-side requires the source toolchain. When it is absent — a CI runner
-without Python, a fresh checkout without the source runtime — the test reports
-which check did not run, with a message naming what is missing, rather than
-failing red for a reason the code cannot fix and rather than skipping
-silently. `cargo test` captures the output of a passing test, so a green log
-shows no report by default — run with `--nocapture` to see which checks did
-not run. A silent skip is how a port ships with no parity evidence at all.
+This illustrative harness is suitable only for an optional local check when the
+source toolchain is unavailable. For a required parity gate, fail on missing
+runtime, non-successful source execution or an empty corpus. Close stdin and
+check exit status and stderr according to the contract. Never treat a passing
+run with skipped cases as parity evidence. Report counts and skips explicitly;
+`cargo test` captures output from passing tests unless run with `--nocapture`.

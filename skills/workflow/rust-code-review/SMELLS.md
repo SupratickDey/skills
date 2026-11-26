@@ -19,7 +19,7 @@ flips the call are at the bottom of this file.
 | A new public enum or struct field without `#[non_exhaustive]` consideration | A new variant or field on a released type, with no attribute and no note | Without it, the next additive change is a breaking one; the attribute is the cheap way to keep the type evolvable | `/rust-api-design` |
 | Blocking I/O, `std::thread::sleep`, or a `std::sync` guard held across `.await` | A sync call or a sleep inside an `async fn`; a live guard over an await point | It stalls the executor thread and starves every other task on it; the failure shows up as latency on unrelated code | `/async-rust` |
 | `unsafe` without `// SAFETY:`, a `// SAFETY:` that restates the code, or a `pub unsafe fn` without `# Safety` | A new unsafe block or fn whose invariant is not written down, or whose comment only repeats what the code does | The written invariant is what makes the block sound; unwritten, or restated instead of stated, it cannot be checked, and the next caller change can break it silently | `/unsafe-rust` |
-| An index loop that is a `map`/`filter`/`collect` in disguise | `for i in 0..v.len()` where the body only reads `v[i]` and accumulates | The iterator form fails to compile on a bounds mistake instead of panicking at runtime, and it reads like Rust to a Rust reader | `/idiomatic-rust` |
+| An index loop that is a `map`/`filter`/`collect` in disguise | `for i in 0..v.len()` where the body only reads `v[i]` and accumulates | Direct iteration avoids manual indexing of the traversed collection. Preserve unequal-length handling and side effects; indexing inside a closure can still panic | `/idiomatic-rust` |
 | A behaviour change with no test that would fail without it | A diff that changes observable behaviour and adds no test, or only tests that pass against the old code | The regression is unfalsifiable: the next refactor breaks the behaviour and nothing says so | `/rust-testing` |
 | A test asserting on `Display` output where a variant match is the contract | `assert_eq!(err.to_string(), "...")` where the callers would match on the variant | The string is formatting, not a contract; the test breaks on a wording change and stays green on a variant change | `/rust-testing` |
 | A public error enum variant carrying a type from a dependency | A new variant shaped like `Parse(toml::de::Error)` on a published error type | The variant pins the dependency into the contract, and the next failure mode added to the enum breaks every caller match | `/rust-errors` |
@@ -38,7 +38,7 @@ above. A defect here is blocking by default; a style row never outranks one.
 | Smell | How it shows up in a diff | Why it comes first | Owning skill |
 |---|---|---|---|
 | UB behind a safe signature | A safe `fn` that hands out a reference or pointer whose validity depends on a call order the caller is not forced into; `transmute` used to widen a lifetime or cast an enum; `unsafe impl Send`/`Sync` added to make an error go away | Safe code must never cause UB; once it can, every caller is unsound without having written `unsafe` | `/unsafe-rust` |
-| A reachable panic on outside input | `slice[start..end]` on offsets from a request, `v[i]` after a length read elsewhere, `n as u8` on a parsed value, `a + b` on untrusted integers | Debug builds panic, release builds wrap: the same input crashes in one profile and corrupts data in the other | `/rust-errors` |
+| A reachable panic or silent numeric corruption on outside input | `slice[start..end]` on request offsets, `v[i]` without a valid bound, narrowing `n as u8`, unchecked arithmetic | Indexing can panic in all profiles; narrowing casts truncate, and overflow behaviour depends on the operation and build settings. Validate inputs and use checked operations where needed | `/rust-errors` |
 | `Ord` hand-written beside a derived `PartialEq`, or `Hash` over different fields than `Eq` | An `impl Ord for Ticket` comparing priority only, while `#[derive(PartialEq, Eq)]` compares every field | `sort`, `dedup`, `BTreeMap`, and `HashMap` assume the traits agree; when they do not, entries vanish or duplicate with no error | `/rust-api-design` |
 | A lock guard across `.await`, or returned to a caller | A `MutexGuard` alive over an await point; a method returning the guard | The task can resume on another thread, or never; the guard outlives the code that reasoned about it | `/async-rust`, `/rust-concurrency` |
 | A caller-supplied closure run while a lock is held | `with_state(\|s\| callback(s))` where the callback can reach the same lock | The library cannot know what the callback does: self-deadlock, or a long hold that serialises every other thread | `/rust-concurrency` |
@@ -85,8 +85,10 @@ produces when it optimises for resembling correct work.
 The same line can be right in context: a `clone` in a startup path that runs
 once, where the allocation is noise; `unwrap` in a test, or in a `main` that
 documents its own preconditions; `pub` on a crate that is deliberately a
-facade for its internals. The rule: when the context is genuinely ambiguous,
-the reviewer asks rather than asserts, and the finding is filed as a note.
+facade for its internals. For genuinely ambiguous intent, ask rather than assert. A preference can be a
+note; a credible high-impact risk with incomplete evidence is explicitly
+unverified and may block readiness pending investigation. A documented defect
+is not a safe trade-off.
 
 One named exception the baseline must not flag: a service type that holds an
 `Arc<Inner>` and derives `Clone` clones one pointer, so every task gets its

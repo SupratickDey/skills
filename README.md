@@ -13,14 +13,14 @@
   <br />
   <a href="#skills">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/skills-28-f2723f.svg?variant=secondary&logo=rust&mode=dark" />
-      <img alt="28 skills" src="https://shieldcn.dev/badge/skills-28-bc4710.svg?variant=secondary&logo=rust&mode=light" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/skills-34-f2723f.svg?variant=secondary&logo=rust&mode=dark" />
+      <img alt="34 skills" src="https://shieldcn.dev/badge/skills-34-bc4710.svg?variant=secondary&logo=rust&mode=light" />
     </picture>
   </a>
 </p>
 
 The most comprehensive Rust agent skills for writing real, idiomatic Rust and porting
-code from other languages. 28 skills that teach judgment, not snippets: use the
+code from other languages. 34 skills that teach judgment, not snippets: use the
 ownership system instead of working around it, design errors and APIs that survive
 review, and port code into Rust without losing behaviour.
 
@@ -153,11 +153,13 @@ Project scope is the default; `--scope user` installs for your account, and
 ```bash
 for skill in \
   rust/async-rust rust/idiomatic-rust rust/ownership-not-clone rust/rust-api-design \
-  rust/rust-concurrency rust/rust-docs rust/rust-errors rust/rust-observability \
+  rust/rust-concurrency rust/rust-config rust/rust-docs rust/rust-errors rust/rust-observability \
+  rust/rust-architecture rust/rust-security \
   rust/rust-performance rust/type-driven-design rust/unsafe-rust \
   porting/port-from-c porting/port-from-cpp porting/port-from-go porting/port-from-java \
   porting/port-from-python porting/port-from-typescript porting/port-to-rust \
-  workflow/rust-code-review workflow/rust-skills-map workflow/rust-testing \
+  workflow/rust-code-review workflow/rust-debugging workflow/rust-skills-map workflow/rust-testing \
+  workflow/rust-refactoring workflow/rust-implementation-planning \
   workflow/setup-rust-skills \
   misc/rust-ffi misc/rust-macros misc/rust-serde misc/rust-supply-chain \
   misc/setup-rust-ci misc/setup-rust-pre-commit
@@ -259,6 +261,9 @@ Language-craft skills for writing and reviewing Rust.
 - [rust-performance](./skills/rust/rust-performance/SKILL.md) — Profile first, cut allocation, and treat codegen flags as the last five percent.
 - [rust-concurrency](./skills/rust/rust-concurrency/SKILL.md) — Threads, channels, locks, and atomics — the model that fits the workload.
 - [rust-observability](./skills/rust/rust-observability/SKILL.md) — Structured events with named fields, spans, and no secrets in logs.
+- [rust-config](./skills/rust/rust-config/SKILL.md) - Typed runtime settings, validation, precedence and secret handling.
+- [rust-architecture](./skills/rust/rust-architecture/SKILL.md) - Cohesive modules, dependency direction and justified abstractions.
+- [rust-security](./skills/rust/rust-security/SKILL.md) - Trust boundaries, authorization, secure defaults and security verification.
 - [rust-docs](./skills/rust/rust-docs/SKILL.md) — Doc comments as API contract, with doctests that actually run.
 
 **User-invoked**
@@ -287,6 +292,9 @@ None yet in this bucket.
 
 - [rust-testing](./skills/workflow/rust-testing/SKILL.md) — Tests that fail when behaviour changes, including port parity.
 - [rust-code-review](./skills/workflow/rust-code-review/SKILL.md) — Two-axis review — standards and spec — over a Rust diff.
+- [rust-debugging](./skills/workflow/rust-debugging/SKILL.md) - Reproduce defects, isolate root causes and verify focused fixes.
+- [rust-refactoring](./skills/workflow/rust-refactoring/SKILL.md) - Small behavior-preserving transformations with regression evidence.
+- [rust-implementation-planning](./skills/workflow/rust-implementation-planning/SKILL.md) - Specification-led task sequencing, acceptance criteria and verification plans.
 
 **User-invoked**
 
@@ -367,8 +375,10 @@ the repo lives in, not advice about it.
 
 The `evals/` directory holds eval cases that run the skills against realistic
 tasks and grade the result. There is one case per porting skill (C, C++, Go,
-Java, Python, TypeScript, and `port-to-rust`) and two cases for
-`rust-code-review`.
+Java, Python, TypeScript, and `port-to-rust`) and three cases for
+`rust-code-review`, including static review when compilation is blocked, plus
+one case each for `rust-config`, `rust-debugging`, `rust-architecture`,
+`rust-security`, `rust-refactoring` and `rust-implementation-planning`.
 
 Each case is a directory:
 

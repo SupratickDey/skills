@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Configuration"
+  short_description: "Typed runtime settings, validation, precedence and secret handling"

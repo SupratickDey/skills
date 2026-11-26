@@ -51,7 +51,10 @@ evidence is both running over the same inputs and agreeing.
 side-by-side execution, property-driven — the normalizations that keep
 non-behaviour differences out of the comparison, and the triage for when the
 outputs disagree. This skill owns the mechanism only; the parity contract that
-says which differences are acceptable belongs to `/port-to-rust`.
+says which differences are acceptable belongs to `/port-to-rust`. Use authorized,
+sanitized fixtures, independent held-out cases and generated boundaries. Define
+numeric tolerances in the contract and report compared, mismatched and skipped
+cases separately; missing runtimes and empty corpora cannot establish parity.
 
 ## Common questions
 
@@ -81,6 +84,8 @@ a `test-util` feature for syscalls, clocks, and entropy in a shipped library
 - Failures name the case, not just a line number.
 - Error-path assertions match on variants rather than message strings.
 - No test computes its expectation from the logic under test.
+- Required parity checks run against a non-empty corpus without silent skips;
+  fixture capture and failure reports protect sensitive data.
 - Test-only helpers sit behind a feature.
 - No test reads the wall clock or the network, and every generator seed is
   explicit.

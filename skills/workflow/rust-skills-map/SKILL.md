@@ -42,13 +42,19 @@ every handoff in this set is a directly typeable `/skill-name`.
 | How should this code report what it is doing? | `/rust-observability` | `/rust-errors` — what the error carries, not how it gets logged |
 | What has to be written down about this API? | `/rust-docs` | `/rust-api-design` — whether the item is public at all, not how it documents |
 | Does this change deserve a test, and which kind? | `/rust-testing` | `/rust-code-review` — designing the test versus judging its absence |
-| How do I move this code into Rust without losing behaviour? | `/port-to-rust` | `/rust-testing` — the harness mechanism, not what the harness has to prove |
+| How do I move or selectively accelerate this code in Rust without losing behaviour? | `/port-to-rust` | `/rust-testing` — the harness mechanism, not what the harness has to prove |
 | What does this Python construct become in Rust? | `/port-from-python` | `/port-to-rust` — the process and the contract, not the construct |
 | What does this TypeScript or JavaScript construct become in Rust? | `/port-from-typescript` | `/port-to-rust` — the process and the contract, not the construct |
 | What does this Go construct become in Rust? | `/port-from-go` | `/async-rust` — the runtime rules, not the goroutine-to-task mapping |
 | What does this Java construct become in Rust? | `/port-from-java` | `/type-driven-design` — the enum rules, not the hierarchy mapping |
 | What does this C++ construct become in Rust? | `/port-from-cpp` | `/ownership-not-clone` — the sharing rules, not the smart-pointer mapping |
 | What does this C construct become in Rust? | `/port-from-c` | `/port-from-cpp` — RAII, templates, and the STL are the other skill |
+| How should application runtime settings be loaded and validated? | `/rust-config` | `/setup-rust-skills` - Cargo tooling and lint posture, not application settings |
+| Why does existing code fail, and how do I fix the cause? | `/rust-debugging` | `/rust-code-review` - read-only findings rather than authorized defect correction |
+| How should components and dependencies be structured? | `/rust-architecture` | `/rust-api-design` - public crate contracts, not component boundaries |
+| How do we protect a trust boundary or sensitive operation? | `/rust-security` | `/unsafe-rust` - memory soundness; `/rust-supply-chain` - dependency risk |
+| How can existing code be made simpler without changing behavior? | `/rust-refactoring` | `/rust-debugging` - correcting a defect; `/rust-architecture` - changing boundaries |
+| What should be implemented, in what order, and how will it be accepted? | `/rust-implementation-planning` | `/rust-architecture` - component design; `/rust-debugging` - existing defects |
 | Is this diff ready to merge? | `/rust-code-review` | every craft skill — review routes to them, it does not restate them |
 | How should this repo be configured? | `/setup-rust-skills` | `/setup-rust-ci`, `/setup-rust-pre-commit` — the workflow and the hook; this one writes the lint configuration and the recorded posture |
 | The repo needs CI that runs what the skills run locally | `/setup-rust-ci` | `/setup-rust-pre-commit` — that one is the commit-time convenience, this one the push-time gate |
@@ -65,8 +71,11 @@ signal that moves between them — is in `FLOWS.md`.
 
 - **Starting fresh in a Rust repo:** `/setup-rust-skills` to configure and
   record posture, then the craft skills as the code demands them,
-  `/rust-testing` and `/rust-docs` alongside, and `/rust-code-review`
-  before merge.
+  `/rust-config` for runtime settings, `/rust-testing` and `/rust-docs` alongside,
+  `/rust-implementation-planning` for nontrivial work, `/rust-architecture`
+  for structural decisions, `/rust-security` for trust boundaries,
+  `/rust-refactoring` for behavior-preserving changes, `/rust-debugging` for
+  defects, and `/rust-code-review` before merge.
 - **Reviewing someone else's code:** `/rust-code-review` first — it dispatches
   to the craft skills itself; a craft skill directly only when the review
   already named it and the depth is wanted.

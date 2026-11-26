@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: refactor-fee-calculation
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  The agent extracts one private shared function, retaining invoice_fee and refund_fee signatures, rates and checked arithmetic. Negative amounts take precedence over overflow; the existing rate, integer division semantics and zero behavior are unchanged. Existing tests remain, and focused tests cover both wrappers, negative input, truncation and overflow. No dependencies or public APIs added.

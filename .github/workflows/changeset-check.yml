@@ -3,60 +3,31 @@ name: Changeset check
 on:
   pull_request:
     branches: [dev]
-    types: [opened, edited, synchronize, labeled, unlabeled]
+    types: [opened, edited, synchronize, reopened, ready_for_review, labeled, unlabeled]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   changeset:
     runs-on: ubuntu-latest
     if: >-
-      !contains(github.event.pull_request.labels.*.name, 'skip-changelog') &&
-      !startsWith(github.event.pull_request.head.ref, 'release-prep/')
+      !contains(github.event.pull_request.labels.*.name, 'skip-changelog')
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-
-      - name: Resolve bump type from PR title
-        id: type
+          persist-credentials: false
+      - name: Verify a changeset in this PR
+        shell: bash
         env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          PREFIX="$(printf '%s' "$PR_TITLE" | sed -E 's/^([a-zA-Z]+).*/\1/' | tr '[:upper:]' '[:lower:]')"
-          case "$PREFIX" in
-            feat)                 BUMP="minor" ;;
-            fix|docs|refactor)    BUMP="patch" ;;
-            *)                    BUMP="patch" ;;
-          esac
-          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
-
-      - name: Create a changeset if the PR has none
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          BUMP: ${{ steps.type.outputs.bump }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          if ls .changeset/*.md 2>/dev/null | grep -qv 'README.md'; then
-            echo "Changeset already present."
-            exit 0
-          fi
-          FILE=".changeset/pr-${PR_NUMBER}.md"
-          printf -- '---\n"rewrite-rs-skills": %s\n---\n\n%s\n' "$BUMP" "$PR_TITLE" > "$FILE"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "$FILE"
-          git commit -m "chore(changeset): add fragment for #${PR_NUMBER}"
-          git push
-
-      - name: Verify a changeset exists
-        run: |
-          if ! ls .changeset/*.md 2>/dev/null | grep -qv 'README.md'; then
-            echo "::error::No changeset found. Add one with 'npx changeset', or apply the 'skip-changelog' label."
+          git diff --name-only --diff-filter=AMR "$BASE_SHA"...HEAD -- .changeset/ > "$RUNNER_TEMP/changed-fragments.txt"
+          awk '$0 ~ /^\.changeset\/[^/]+\.md$/ && $0 != ".changeset/README.md"' "$RUNNER_TEMP/changed-fragments.txt" > "$RUNNER_TEMP/changeset-files.txt"
+          if [ ! -s "$RUNNER_TEMP/changeset-files.txt" ]; then
+            echo "::error::Add a changeset to this PR or obtain the skip-changelog label."
             exit 1
           fi
+          cat "$RUNNER_TEMP/changeset-files.txt"

@@ -25,8 +25,13 @@ pointed at — and the question is what to do first and in what order.
    locally.
 2. The craft skills, as the code demands them — `/type-driven-design` while
    the model is still soft, `/rust-errors` at the first fallible boundary,
-   `/rust-api-design` before the first published version, and the rest by the
-   questions they raise. **Alongside, not after:** `/rust-testing` writes the
+   `/rust-api-design` before the first published version, `/rust-config` when
+   loading runtime settings, and the rest by the questions they raise.
+   Use `/rust-implementation-planning` for nontrivial requirement sequencing,
+   `/rust-architecture` for component boundaries, `/rust-security` for access
+   control and trust boundaries, and `/rust-refactoring` for structural changes
+   that preserve behavior. Use `/rust-debugging` when existing behavior fails;
+   it owns defect isolation and focused correction, not independent review. **Alongside, not after:** `/rust-testing` writes the
    test for each behaviour change as it lands, so the suite never trails the
    code, and `/rust-docs` writes the doc comment for each public item as its
    signature settles, so the contract never trails the code either.
@@ -54,10 +59,10 @@ the question is whether it is ready to merge.
 
 ## Porting from another language
 
-**Situation.** A Rust implementation is replacing an existing one — C, C++,
-Python, TypeScript, Go, or Java — either outright or behind a boundary that
-stays, and the question is how to sequence the work so the port does not
-drift from the behaviour of its source.
+**Situation.** A Rust implementation is replacing an existing one or accelerating selected
+hot operations in a host that stays. The question is how to sequence the work
+without drifting from source behaviour. For acceleration, start with a
+representative profile and use `/rust-performance` to verify end-to-end gains.
 
 **The route.**
 
