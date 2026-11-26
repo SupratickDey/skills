@@ -154,13 +154,14 @@ realistic corpus exists.
 **Why it is fatal.** It mostly turns up rare edge divergences that a note
 can cover, while its cost delays the evidence that matters.
 
-**Instead.** Tens of representative inputs, error paths included, are
-enough to judge parity for a port of this size. The
+**Instead.** Start with representative inputs and error paths, then expand by contract and
+risk, including independently held-out and boundary cases. No fixed count proves
+parity. The
 recorded production corpus and property generators described in
 `PARITY-CONTRACT.md` stay the measure for a system that has them; the
 point here is that a small port does not need a campaign to be proven,
-and anything a campaign turns up on inputs nobody sends goes in the
-notes.
+and any divergence on a supported input must be triaged against the contract,
+not dismissed solely because the input is rare.
 
 ## Porting dead code
 
