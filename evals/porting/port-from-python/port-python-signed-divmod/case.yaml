@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: port-python-signed-divmod
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  Port the bounded signed integer CLI faithfully. Preserve Python quotient and remainder for both divisor signs, zero-divisor and input-range errors, output and exit status. Compare actual Python and Rust outputs on representative signed cases, report denominator and discrepancies. No binding, dependency or unrelated behavior changes.

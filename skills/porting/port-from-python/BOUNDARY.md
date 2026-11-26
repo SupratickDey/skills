@@ -3,15 +3,16 @@ anything afterwards — the rest of this file does not apply, and the seam is
 the process boundary described in the second-to-last section. Read `/port-to-rust`
 for the end-state decision and come back only under B or C.
 
-Under C the binding layer is scaffolding and may be crude, because it is
-deleted at cut-over; under B it is the product surface, and every choice
+Under C the binding layer is temporary, but its safety and required parity
+remain mandatory until removal; under B it is the product surface, and every choice
 below is a public API decision that outlives the port.
 
 ## PyO3 plus maturin, the route under B and C
 
 The extension module is a `cdylib` that PyO3 exposes to the interpreter.
-For a new module, `maturin init --bindings pyo3` scaffolds the crate and
-the `pyproject.toml`. A minimal module:
+For an authorized new module, maturin can scaffold the crate and pyproject.
+Inspect existing package layout and pinned versions first; the following is
+an illustrative PyO3 0.23 API shape, not a dependency upgrade recommendation.
 
 ```rust,ignore
 use pyo3::prelude::*;
@@ -51,9 +52,9 @@ version = "0.1.0"
 ```
 
 `maturin develop` builds the extension and installs it into the active
-virtualenv under the module name, which is what makes the swap invisible to
-the rest of the app: the existing `import fastcore` finds the Rust
-implementation, and no call site changes beyond the import.
+virtualenv under the module name, but import resolution and package compatibility must be tested. Preserve
+public names, signatures, defaults, keyword-only arguments, exception types,
+class behavior and existing Python adapters.
 
 Classes cross the same way, because under B the package keeps its class
 signatures: a `#[pyclass]` with a `#[pymethods]` block, where `__init__`
@@ -86,30 +87,43 @@ decision: the existing callers catch specific types, so a port that raises
 a generic exception breaks `except ValueError:` blocks that the corpus
 never covers. Map the error enum to exception types explicitly — the
 `pyo3::exceptions` types, `PyValueError`, `PyIOError`, `PyTypeError` —
-rather than accepting the default. PyO3 also catches a panic at the
-boundary and turns it into a Python exception, so a panic never unwinds
-into the interpreter.
+rather than accepting the default. PyO3 can translate unwinding panics to PanicException at supported boundaries.
+That is not ordinary application error handling; aborting panics cannot be
+caught, and foreign boundaries have their own unwind contracts. Avoid panics
+for expected failures and verify the pinned PyO3 behavior.
 
-## The GIL, and what it costs
+## Interpreter attachment and concurrent access
 
-Holding the GIL blocks every other Python thread, and PyO3 holds it by
-default across a call. Releasing it around long computations with
-`Python::allow_threads` is what makes the port faster than the code it
-replaced. The inverse is a real cost: a small function that crosses the
-boundary inside a tight Python loop can be slower than the Python it
-replaced, because the call overhead dominates. Port the loop, not the loop
-body. And the positive case is the mirror: the module worth moving is the
-CPU-bound one with a clean boundary — that is where the port amortizes the
-boundary cost — while I/O-bound code that `asyncio` already served well
-stays in Python.
+Inspect the installed PyO3 and Python versions. Older PyO3 uses with_gil
+and allow_threads; newer versions use attach and detach. Do not combine
+API generations or change the dependency simply to use a newer name.
+Detach around independent Rust work or blocking waits when appropriate.
+Do not access Python-bound objects or call Python callbacks while detached;
+copy or transfer owned data under an explicit lifetime contract first.
+
+Free-threaded CPython changes synchronization assumptions. The Python token
+represents thread attachment, not an exclusive lock in that build.
+Review shared state, concurrent class borrows, locks, callback reentry and
+deadlock risks. Do not advertise free-threaded support or set module GIL
+policy until the pinned version's requirements and actual concurrent tests
+support it. Some versions have different defaults for module GIL policy.
+Retain Python-side task cancellation and error behavior for async adapters.
 
 ## Data crossing the boundary
 
-`bytes` can cross zero-copy through the buffer protocol, and so can lists
-and NumPy arrays; every copy that is not avoided is a conversion somewhere
-in the profile. The rule: the boundary type is a design decision, not a
-translation. Accepting `&[u8]` where the source accepted a list of ints
-avoids a conversion nobody sees in the profile until it is the profile.
+Do not assume extraction is zero-copy. Python lists contain Python objects
+and normally require element conversion to a Rust collection. Bytes, buffers
+and NumPy arrays can sometimes be borrowed with an appropriate API, but
+verify contiguity, strides, dtype, byte order, alignment, mutability,
+ownership and lifetime. Noncontiguous or incompatible inputs may need a
+copy or a documented rejection. Keep the owner alive for any borrow;
+do not retain a raw pointer after its valid lifetime or let concurrent
+mutation invalidate Rust references.
+
+Batch work across the seam when the measured workload justifies it.
+Measure the Python-visible end-to-end operation including conversion,
+allocation, interpreter attachment, scheduling and copies. Preserve a tested
+fallback or rollback only under the approved selective acceleration policy.
 
 ## The no-bindings route, for end state A
 
@@ -126,10 +140,14 @@ rather than two.
 
 ## Packaging and CI
 
-Under B this is a deliverable: wheels per platform, the `abi3` option for
-one wheel across Python versions, and matching every platform the existing
-package supported — a B port that ships one wheel where the source shipped
-four has not cut over. Under C it is throwaway build glue, and the only
-requirement is that the differential job builds the extension rather than
-testing a stale one. Under A there is nothing to package beyond the Rust
-binary itself.
+Under B preserve the approved distribution matrix: Python versions, OS,
+architecture, interpreter variants and native dependencies. abi3 can cover
+multiple compatible Python versions on a given platform, subject to the
+limited API and pinned PyO3 support; it is not a universal wheel or automatic
+free-threaded compatibility. Use the existing maturin build policy, verify
+wheel tags and native library constraints, install each required wheel into
+a clean environment, confirm module provenance and run host tests there.
+A local maturin develop import is not wheel-distribution evidence. Under C
+build and verify the fresh scaffold on required environments. Under A verify
+the standalone artifact instead. Report unsupported or untested combinations;
+never publish without authorization.

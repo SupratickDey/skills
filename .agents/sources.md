@@ -101,3 +101,10 @@
 - Heaptrack: https://github.com/KDE/heaptrack
 - Apache Kafka delivery semantics: https://kafka.apache.org/documentation/#semantics
 - PostgreSQL transaction isolation: https://www.postgresql.org/docs/current/transaction-iso.html
+
+## Python migration correctness and native packaging
+
+- Python expression semantics: https://docs.python.org/3/reference/expressions.html
+- PyO3 migration and interpreter attachment: https://pyo3.rs/main/migration and https://pyo3.rs/main/free-threading.html
+- PyO3 performance: https://pyo3.rs/main/performance.html
+- Maturin distribution tutorial: https://www.maturin.rs/tutorial
