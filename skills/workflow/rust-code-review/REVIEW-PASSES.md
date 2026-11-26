@@ -24,10 +24,12 @@ an application, and the edition and MSRV found in `Cargo.toml`. A library is hel
 to the API bar strictly; an application is held to simplicity instead. No
 recommendation may need a toolchain newer than the MSRV.
 
-Run the tools before the passes start and hand their grouped results to both:
+Attempt the configured tools before the passes start and hand their grouped results to both:
 `cargo fmt --check`, clippy at the repo level, and the tests. Pedantic hits,
 when asked for at all, are proposals and only the relevant ones. Never run
-`cargo fmt` itself on the code under review.
+`cargo fmt` itself on the code under review. Continue both applicable passes
+when a check is blocked; label findings by static trace, reproduced failure or
+unresolved uncertainty.
 
 Missing the request means the spec pass cannot run: ask for it rather than
 inventing an intent from the diff. Missing the lint configuration means
@@ -70,8 +72,9 @@ path:line — severity: what is wrong. What to do instead.
 
 Every finding cites a location (path:line, or whole file) and names a rule: a
 clippy lint or the owning skill. Group repeats into one finding listing the
-lines. A documented or commented choice is a note stating the trade-off, not
-a blocker. Do not modify, reformat, or rewrite the code under review.
+lines. A legitimate documented trade-off may be a note. Do not downgrade a proven
+correctness, security or soundness defect because it is documented or a lint
+is allowed. Do not modify, reformat, or rewrite the code under review.
 
 Severity is blocking, should-fix, or note. Blocking includes an API choice
 that turns into a semver break after release. A finding with no concrete fix is
@@ -123,7 +126,8 @@ path:line — severity: what is wrong. What to do instead.
 
 ## Reporting
 
-Lead with the verdict — blocking issues present, or none — then the scope
+Lead with the verdict: blocking issues present, verification incomplete, or no
+blocking issue found after applicable checks. Then state the scope
 decisions and what ran, as set out in `REPORT-FORMAT.md`. Then the findings,
 most severe first, in the shape that file gives for the review at hand. Then
 the verification output, quoted rather than summarized, with any check that
