@@ -28,7 +28,7 @@ points, and the named skill, typed as a `/skill-name`, does the work.
 | Is this safe to `.await` here? | `/async-rust` | `/ownership-not-clone` — the across-`.await` rule only |
 | Is this `unsafe` block sound? | `/unsafe-rust` | `/rust-code-review` — soundness versus review process |
 | Does this change deserve a test, and which kind? | `/rust-testing` | `/rust-code-review` — designing the test versus judging its absence |
-| How do I move this code into Rust without losing behaviour? | `/port-to-rust` | `/rust-testing` — the harness mechanism, not what the harness has to prove |
+| How do I move or selectively accelerate this code in Rust without losing behaviour? | `/port-to-rust` | `/rust-testing` — the harness mechanism, not what the harness has to prove |
 | What does this Python construct become in Rust? | `/port-from-python` | `/port-to-rust` — the process and the contract, not the construct |
 | What does this TypeScript or JavaScript construct become in Rust? | `/port-from-typescript` | `/port-to-rust` — the process and the contract, not the construct |
 | What does this Go construct become in Rust? | `/port-from-go` | `/async-rust` — the runtime rules, not the goroutine-to-task mapping |

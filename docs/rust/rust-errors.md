@@ -28,7 +28,7 @@ directly, as `/rust-errors`.
 `unwrap` and `expect` are assertions about invariants, not error handling. They
 stand in tests, in `main` for a startup precondition, and after a check the
 compiler cannot see — and the `expect` message names the invariant violated,
-not the operation that failed, and carries the actual values. Not every failure
+not the operation that failed, and includes only safe diagnostic values. Not every failure
 is a `Result`: input validation is always a `Result`, and a broken internal
 invariant with no caller-recoverable path is the one failure that should stop
 the program. Other legitimate panics are `const` contexts, methods that unwrap on
@@ -37,12 +37,13 @@ misuse is justified, a fallible sibling sits beside it, with the panic documente
 under `# Panics`. Return `Option` when absence is the one obvious failure
 (`checked_add`) and `Result` when the cause is useful to the caller.
 
-**`catch_unwind`.** Never catch and continue inside first-party logic. It is
-allowed at an FFI boundary (required there), per request in a server followed by
-a controlled restart, and as defence in depth that nothing relies on. It does
-nothing under `panic = "abort"`, and a library never catches on its caller
-behalf. Every function also owes minimal panic-safety: order the work so no
-intermediate state breaks an invariant. Detail in `PANICS.md`.
+**`catch_unwind`.** Never resume work on inconsistent state. At a non-unwinding
+FFI boundary, an escaping Rust panic aborts the process; an incoming foreign
+unwind is undefined behaviour. Catch unwinding Rust panics only if the boundary
+contract requires translation or isolation; aborting panics cannot be caught.
+A server or plugin host may recover only after restoring invariants or discarding
+the affected worker. Every function owes minimal panic-safety: order work so
+intermediate state remains valid. Detail in `PANICS.md`.
 
 ## Which shape: the boundary decides
 
@@ -109,15 +110,16 @@ additions.
 - No `unwrap` or `expect` remains outside tests and documented startup
   preconditions, and every surviving one has a one-line justification.
 - Every `expect` message states the invariant violated, not the operation, and
-  carries the actual values.
+  carries only non-sensitive diagnostic values; underlying `Debug` output is
+  also reviewed for secrets.
 - No public error variant carries a type from a dependency, and every public
   error answers the questions callers ask through predicates rather than
   through a variant match.
 - Library crates expose `thiserror` errors shaped by the boundary — an enum for
   the closed case, a struct with a private kind for the published case — and
   the binary surfaces `anyhow` with context only at the top.
-- No `catch_unwind` exists outside an FFI boundary, a per-request server
-  boundary, or a never-relied-on backstop.
+- Every `catch_unwind` has a documented boundary, isolation or fatal recovery
+  policy; tests exercise recovery under the supported panic strategy.
 - No error reaches a user as a bare OS message, and no fact is restated at more
   than one layer.
 - `cargo test` passes at the lint level configured in the repo.

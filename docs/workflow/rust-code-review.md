@@ -5,8 +5,8 @@ idiom, ownership, error, API, and unsafe rules the craft skills own) and spec
 (does the change do what was asked) — and merges the two passes into one
 report led by a verdict. The defining constraint: the two axes run separately
 and are merged, with a Rust smell baseline layered on the repo lint
-configuration rather than replacing it. A finding that contradicts a level
-the repo deliberately set is a proposal, and it says so.
+configuration rather than replacing it. A stylistic finding that contradicts a deliberately configured lint is a
+proposal. A proven correctness, security or soundness defect is not.
 
 ## When to reach for it
 
@@ -20,9 +20,9 @@ port, which belongs to `/port-to-rust`. The user can run it directly, as
 
 ## Prerequisites
 
-A buildable checkout: the verification step runs `cargo fmt`, `cargo clippy`,
-and `cargo test`, and a report that cannot run them names the gap rather than
-implying a clean bill. And a stated request for the change to be reviewed
+A checkout to inspect. Attempt `cargo fmt --check`, `cargo clippy` and
+`cargo test` using the supported project configurations. If a check is blocked,
+continue static review, report missing evidence, and do not certify readiness. And a stated request for the change to be reviewed
 against — an issue, a PR body, or the user's own words. Without the second,
 only the standards axis can run; the spec pass is asked for rather than
 invented.
@@ -37,7 +37,8 @@ invented.
 The prompts for both, the merge rules, and the report shape are in
 `REVIEW-PASSES.md`. When the harness supports parallel sub-agents the passes
 run side by side; otherwise they run in order. The machine goes first either
-way: anything clippy already reports is a build failure, not a finding.
+way: group tool findings by cause without duplication. Warnings are not
+necessarily build failures, but tool-reported defects may still block merge.
 
 ## Scope, tools, and priority order
 
@@ -67,8 +68,8 @@ that turns into a semver break after release. A diff or short review uses one
 line per finding. A file, crate, audit, or requested report uses a longer
 block: location, standard, consequence, and the minimal edit
 that fixes it. Every finding cites `path:line` or "whole file", names a
-clippy lint or the owning skill, and groups repeats. A documented choice
-becomes a note with the trade-off. The long report may add a keep list of two
+clippy lint or the owning skill, and groups repeats. A legitimate documented trade-off may be a note; a documented correctness or
+security defect retains its severity. The long report may add a keep list of two
 to four items, only for choices the fixes could undo; the praise ban stands.
 Templates are in `REPORT-FORMAT.md`. A repo with no lint configuration gets a
 closing suggestion to run `/setup-rust-skills`, citing items in the report that its lints would
@@ -135,13 +136,16 @@ verdict rather than a dump of tool output.
   fix is phrased as a question.
 - The review names which skill settles each finding rather than restating
   that skill guidance inline.
-- Nothing clippy already reports appears as a finding.
+- Machine-reported defects are grouped without duplicate findings; severity
+  follows the consequence, not the source of the diagnostic.
 - Findings that contradict the repo lint configuration are phrased as
   proposals.
 - The report opens with scope: what was reviewed, library or application, and
   edition and MSRV.
 - Soundness and reachable-panic findings come before style findings.
-- Repeats are grouped, and a documented choice is a note, not a blocker.
+- Repeats are grouped. Documented choices do not hide verified defects.
+- Static review continues if required tooling fails; merge readiness is not
+  claimed when required checks are blocked.
 - The verification output is quoted rather than summarized, and any check
   that could not run is named.
 

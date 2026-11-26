@@ -20,8 +20,8 @@ First settle whether speed matters for this crate at all. A parser fed
 bulk input or a service on the request path does; a one-shot setup tool does
 not, and treating it as hot buys complexity for nothing. When it does, find
 the hot paths, benchmark them, profile on a schedule rather than once, and
-record each hot spot in a comment beside the code, so the next editor knows
-which lines are load-bearing for speed and does not tidy them away.
+record the workload, bottleneck and measurement in benchmark notes; use a short
+code comment only when a non-obvious constraint must survive later edits.
 
 ## Benchmarks that mean something
 
@@ -37,8 +37,15 @@ Without it, the profiler shows addresses instead of function names:
 debug = 1
 ```
 
-A benchmark run on a laptop under thermal throttling produces a number, just not
-a comparable one — the machine has to be quiet between the runs being compared.
+Use the same representative workload, release settings, feature set and machine
+for both versions. Repeat runs, alternate or randomize the order, and measure an
+unchanged baseline against itself (A/A) when noise could obscure the gain. Record
+sample counts, environment, variability, wall time and relevant CPU, memory,
+latency or throughput metrics. A speedup smaller than the noise is inconclusive.
+For an optimization behind a language boundary, measure the whole application as
+well as the hot function, including dispatch, conversion, allocation and copying.
+Keep the change only if it meets the agreed performance target without violating
+correctness, security or resource budgets.
 
 ## Allocation is usually the answer
 
@@ -87,13 +94,11 @@ plainly rather than presenting the swap as a free win.
 
 ## Iterators and bounds checks
 
-An iterator chain gives the optimiser the length invariant an index loop hides,
-which is how bounds checks disappear: two `[i]` reads in one loop become
-`iter().zip()`, and the optimiser can prove the accesses in range. This is the
-one place where the idiomatic form is also the fast form — no tradeoff to
-argue about. Where a hand-written loop looks faster, or the chain looks
-expensive, settle it by benchmarking the two forms on real data rather than by
-assertion; the result may go either way, and only the number decides.
+Direct iteration may help the optimiser eliminate bounds checks, but neither
+iterator syntax nor indexing guarantees a particular machine-code result. `zip`
+stops at the shorter input, so preserve length validation and traversal semantics
+before comparing implementations. Benchmark both correct forms on real data;
+inspect generated code only when it helps explain a measured difference.
 
 ## Batch entry points for bulk work
 
@@ -169,6 +174,10 @@ cargo bench                  # against the recorded baseline where one exists
 cargo clippy --all-targets   # at the level the repo configures; add -- -D warnings only if it configures none
 cargo test --release
 ```
+
+Select the supported workspace members, targets and feature configurations;
+use the target project's configured benchmark harness. Run behavioural tests
+before accepting a gain and record checks that could not run.
 
 A benchmark with no stored baseline proves nothing about a change — record the
 before, then measure the after, and compare against the noise the benchmark

@@ -104,7 +104,10 @@ shapes — recorded corpus, side-by-side execution, `proptest` over a shared
 generator — with their tradeoffs, and the rules for normalizing and recording
 differences, are in `DIFFERENTIAL-TESTING.md`. The parity contract that says
 which differences are acceptable belongs to `/port-to-rust`; this skill
-supplies the mechanism, not the contract.
+supplies the mechanism, not the contract. Use approved, sanitized fixtures,
+independent held-out cases and generated boundary inputs where appropriate.
+Report cases compared, mismatches and skipped cases separately. Missing source
+runtime or zero compared cases cannot establish parity.
 
 ## Deferrals
 

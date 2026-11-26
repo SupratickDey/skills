@@ -1,5 +1,13 @@
 # Contributing
 
+## Agent instructions
+
+`AGENTS.md` is the canonical authoring and engineering policy for both coding
+agents. `CLAUDE.md` imports it; keep platform-specific additions in the wrapper
+only when necessary. The rules govern this repository and do not automatically
+install policy in consumer projects. Read the applicable `.agents/` rules
+before editing skills.
+
 ## Propose before you build
 
 Open an issue before writing anything. Describe the skill or the change you have
@@ -26,6 +34,19 @@ of its own.
 Open pull requests against `dev`. Moving `dev` into `main` is a maintainer action
 performed by a bot account with elevated permissions; a contributor push cannot do
 it directly, and that is by design — see ADR 0004 for why.
+
+## Local skill harness
+
+For manual development testing, run `scripts/link-skills.sh` from the checkout.
+It links promoted skill directories into initialized Claude Code and Codex user
+skill homes. It excludes in-progress skills, is idempotent for links to the
+same checkout, and preflights collisions without replacing an existing skill.
+If a different installation occupies a name, choose one installation route and
+remove or relocate it yourself before retrying. Run `node --test tests/link-skills.test.mjs`
+to verify the linker without touching your real skill directories.
+
+This harness validates filesystem linking, not actual agent runtime discovery.
+Restart the chosen agent and verify its visible skill list and invocation.
 
 ## Adding a changeset
 

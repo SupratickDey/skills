@@ -10,12 +10,13 @@ Panicking tells the runtime to abandon the current computation, and often the
 whole process, immediately. The cases where that is the right call:
 
 - a detected bug or broken contract, where no caller could respond correctly;
-- a `const` context, where `Result` handling is not available and a failed
-  invariant should fail the build or the evaluation;
+- a `const` context where the API deliberately requires an invariant violation
+  to fail evaluation; fallible const APIs may also return `Result`;
 - a method whose name says it unwraps on request, so the caller asked for the
   panic by choosing it;
-- a poisoned lock, where another thread already died holding it and
-  `lock().unwrap()` propagates that failure;
+- a poisoned lock when the explicit policy is to abandon the affected computation;
+  poisoning indicates a possible invariant violation, not necessarily a dead thread.
+  Recover only after checking or restoring the protected invariants;
 - a developer-facing tool or script, where a non-fatal error may end the run
   because the only reader is the developer at the terminal;
 - a test, where a panic is the assertion mechanism.
@@ -64,14 +65,18 @@ acceptable:
 
 | Place | Why it is allowed |
 |---|---|
-| An FFI boundary | Unwinding across `extern "C"` into foreign code is undefined; the catch is required, and it turns the panic into an error code or an abort. |
+| A non-unwinding FFI boundary | An escaping Rust panic aborts; a foreign unwind entering Rust is undefined behaviour. Catch an unwinding Rust panic if the contract requires translating it to an error instead of aborting. |
 | A server, per request | One bad request must not take down the others, but the catch is followed by a controlled restart of the worker or process, not by trusting its state. |
 | Defence in depth | A last backstop that logs and stops cleanly, where no correctness depends on it ever firing. |
 
-Two limits apply everywhere. Under `panic = "abort"` there is no unwinding, so
-`catch_unwind` never sees anything; code that relies on it breaks the day the
-profile changes. And a library never catches and continues on behalf of its
-caller — whether the process survives a panic is the application decision.
+Under `panic = "abort"`, `catch_unwind` cannot catch the panic. A panic hook
+can run before the catch; keep diagnostics free of sensitive data. The panic
+payload itself may panic on drop, so boundary translation must account for its
+lifetime. Do not use `catch_unwind` to catch foreign exceptions: the result is
+not portable. A boundary that intentionally permits unwinding requires an
+appropriate unwind ABI and an explicitly designed interoperability contract.
+Libraries must not silently recover from inconsistent state; documented
+isolation or error translation must uphold invariants and the caller contract.
 
 ## Minimum panic-safety
 

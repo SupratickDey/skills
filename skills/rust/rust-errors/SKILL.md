@@ -17,7 +17,8 @@ Acceptable: in tests, in `main` for a startup precondition, in a developer-facin
 tool where a non-fatal failure may simply stop the run, in a `const` context where
 no `Result` can be returned, in a method whose name tells the caller it unwraps on
 request (`unwrap_*`, `expect_*`), and after a check the compiler cannot see — where
-`expect` names the invariant and carries the values. Unacceptable: in library code on any input-derived value, or anywhere
+`expect` names the invariant and includes only safe diagnostic values. Never
+expose credentials, tokens or private input in a panic, error or log. Unacceptable: in library code on any input-derived value, or anywhere
 the justification is "this can't fail" without saying why.
 
 Not every failure is a `Result`. A broken internal invariant with no
@@ -108,18 +109,23 @@ growth at the cost of exhaustive matching. The semver rules live in
 
 ## Panics that are the right answer
 
-Panic means stop the program, not "return an error loudly": a detected bug — a
-violated internal invariant — panics rather than returning an `Error`, because
-there is no caller who can do anything correct with it. Panic is not an exception
+A panic abandons the current computation and may unwind or abort the process,
+depending on the build profile and boundary. It is not a louder `Error`.
+For a detected internal invariant violation, choose panic or a documented fatal
+error according to the application policy; never return a successful result. Panic is not an exception
 mechanism, and never a way to report a failure the caller could handle. For
 invariants too costly to check in release builds, `debug_assert!` keeps the check
 in dev and test builds.
 
-Never catch a panic and carry on inside first-party logic. `catch_unwind` has
-three legitimate homes: an FFI boundary, where unwinding across it is undefined
-and the catch is required; a server that catches per request and then triggers a
-controlled restart; and defence in depth that nothing depends on. It does nothing
-under `panic = "abort"`, and a library never catches and continues. The reasons,
+Do not catch a panic and resume work on potentially inconsistent state.
+At a non-unwinding FFI boundary, a Rust panic escaping causes a process abort;
+a foreign unwind entering Rust through such a boundary is undefined behaviour.
+Catch Rust unwinding panics at the boundary when the contract requires an error
+translation instead of abort. `catch_unwind` cannot catch an aborting panic and
+is not a portable foreign-exception catcher. A server or plugin host may isolate
+panics only when its state and resource invariants are restored or the affected
+worker is discarded. Use `UnwindSafe` as a review prompt, not a proof that recovery
+is safe; justify any `AssertUnwindSafe` use. The reasons,
 the panic-safety minimum, and the infallible-plus-fallible pairing are in
 `PANICS.md`.
 
@@ -145,7 +151,8 @@ rg '\.unwrap\(\)|\.expect\(' --glob '!**/tests/**' --glob '!**/benches/**' src/
 ```
 
 Every surviving hit needs a one-line justification. Also grep for `catch_unwind`:
-each hit should sit at an FFI boundary, a per-request server boundary, or a
-documented never-relied-on backstop. `clippy::unwrap_used` and
+each hit should have a documented isolation, boundary-translation or fatal
+recovery policy. Verify both ordinary failure paths and any claimed recovery
+under the supported panic strategy. `clippy::unwrap_used` and
 `clippy::expect_used` are `restriction` lints: propose them for the repo lint
 config, do not switch them on unilaterally, or override a level already set.

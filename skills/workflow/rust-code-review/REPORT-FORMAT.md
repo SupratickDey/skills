@@ -16,8 +16,9 @@ The severity levels are the same in both: blocking, should-fix, note.
 
 Lead with the verdict, then the scope decisions, then what ran:
 
-- **Verdict** — blocking issues present, or none, and the single most
-  important fix.
+- **Verdict:** blocking issues present, verification incomplete, or no blocking
+  issue found after applicable checks. State the most important fix or blocker.
+  Missing required verification is not merge approval.
 - **Scope** — the subject reviewed; whether a library or an application was
   assumed, and the bar that implies; the edition and MSRV found in `Cargo.toml`.
 - **Tools** — which of fmt check, clippy, and tests ran, at what lint level,
@@ -36,7 +37,7 @@ src/ledger.rs:12 — note: pub field on a type only built in this crate; documen
 ~~~markdown
 # Findings for <subject of the review>
 
-**Verdict:** <blocking present / none>. Most important fix: <one sentence>.
+**Verdict:** <blocking present / verification incomplete / no blocking issue found>. Most important fix or blocker: <one sentence>.
 **Scope:** <subject>; assumed <library|application>; edition <e>, MSRV <v>.
 **Tools:** <what ran, at what level, grouped results; what could not run>.
 

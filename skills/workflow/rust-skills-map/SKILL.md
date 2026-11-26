@@ -42,7 +42,7 @@ every handoff in this set is a directly typeable `/skill-name`.
 | How should this code report what it is doing? | `/rust-observability` | `/rust-errors` — what the error carries, not how it gets logged |
 | What has to be written down about this API? | `/rust-docs` | `/rust-api-design` — whether the item is public at all, not how it documents |
 | Does this change deserve a test, and which kind? | `/rust-testing` | `/rust-code-review` — designing the test versus judging its absence |
-| How do I move this code into Rust without losing behaviour? | `/port-to-rust` | `/rust-testing` — the harness mechanism, not what the harness has to prove |
+| How do I move or selectively accelerate this code in Rust without losing behaviour? | `/port-to-rust` | `/rust-testing` — the harness mechanism, not what the harness has to prove |
 | What does this Python construct become in Rust? | `/port-from-python` | `/port-to-rust` — the process and the contract, not the construct |
 | What does this TypeScript or JavaScript construct become in Rust? | `/port-from-typescript` | `/port-to-rust` — the process and the contract, not the construct |
 | What does this Go construct become in Rust? | `/port-from-go` | `/async-rust` — the runtime rules, not the goroutine-to-task mapping |
