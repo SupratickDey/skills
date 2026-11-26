@@ -10,7 +10,8 @@ banned; an unexplained clone is.
 | Passing shared read-only data to a spawned task | `.clone()` the data | Is `Arc<T>` enough? | `Arc::clone` — cheap and explainable |
 | Two `&mut` borrows of different fields | clone one field | Can the struct be destructured? | Destructure — no clone |
 | Loop body needs the collection it mutates | clone the collection | Can the reads be hoisted out? | Hoist |
-| `Copy`-sized struct (a few words) | worry about it | Is it `Copy`? | Derive `Copy`, stop thinking about it |
+| Small value type | assume `Copy` is always suitable | Is implicit duplication valid and part of the intended API? | Derive `Copy` only when semantics and API stability permit |
+| Shared handle or independent snapshot | remove `.clone()` by habit | Does the caller need shared identity or isolated data? | Preserve the required semantics; reference counts and deep copies have different costs |
 
 ## Signature-driven clone, removed
 
@@ -88,8 +89,7 @@ for _ in 0..n {
 After:
 
 ```rust,ignore
-// One clone, taken before the mutable borrow begins. Explainable: the value
-// must outlive the loop that mutates the vector.
+// Own a snapshot before mutating the vector. Each pushed item is still cloned.
 let first = items[0].clone();
 for _ in 0..n {
     items.push(first.clone());
@@ -102,12 +102,16 @@ the borrow ends at the `let`.
 ## The `&mut self` field conflict, resolved by destructuring
 
 ```rust,ignore
-// Rejected: self is mutably borrowed by the loop, so self.log is unreachable.
+// Rejected: record_connection takes &mut self while connections is borrowed.
 impl Server {
     fn handle(&mut self) {
         for conn in &mut self.connections {
-            self.log.record(conn.id()); // E0502
+            self.record_connection(conn.id()); // E0499
         }
+    }
+
+    fn record_connection(&mut self, id: ConnectionId) {
+        self.log.record(id);
     }
 }
 ```

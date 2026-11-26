@@ -18,9 +18,11 @@ The decision is deliberate, not forbidden. When the borrowing alternative is
 genuinely contorted — lifetimes threaded through five signatures to save a copy
 of a few bytes — a clone is allowed, as a commented choice that weighs what the
 copy costs against what the contortion costs. What it may not be is a reflex.
-A clone added only to quiet the checker also creates a second value: edits made
-to the copy never reach the original, so the program can quietly diverge from
-what the author meant. In a prototype, clones are acceptable provided each is
+Inspect the type's `Clone` implementation before changing it. A deep copy
+may isolate subsequent mutations; a handle clone can share the original state.
+Removing either can change observable behaviour. Preserve snapshot semantics,
+shared identity, destructor timing and public contracts. Explain non-obvious
+costs in a short comment or the review, not mechanically beside every clone. In a prototype, clones are acceptable provided each is
 still a deliberate, findable choice that gets revisited before the code ships.
 When the alternative to borrowing is a type that owns its data, owning wins
 more often than not: an owned `Vec<u8>` field spares every container the
@@ -45,9 +47,9 @@ for _ in 0..n {
 
 ## Borrow splitting
 
-The borrow checker tracks a whole value through method calls, but fields
-individually through direct field access. A `&mut self` method that also needs
-`self.other_field` is the classic false conflict — destructure once:
+A call taking `&mut self` borrows the receiver as a whole; direct access to
+separate fields can borrow them independently. When a helper method needs one
+field while another is borrowed, pass only the field the helper needs:
 
 ```rust,ignore
 // The two fields are separate lets and borrow independently.
@@ -70,8 +72,10 @@ a better design than the old blob.
 ## Take the cheapest thing that works, in argument position
 
 `&str` over `&String`, `&[T]` over `&Vec<T>`, `impl AsRef<Path>` over a `PathBuf`
-for a path a function only reads. A signature that takes `String` when it only
-reads forces every caller into a clone — the bug is in the signature.
+for a path a function only reads. A read-only signature taking `String` forces callers with borrowed text to
+allocate or clone, although owned callers can move. Prefer a borrowed parameter
+for new APIs or authorized refactors; do not break a published API merely to
+remove a clone.
 
 The same rule covers the wrappers: `&T` over `&Box<T>`, and `Option<&T>` over
 `&Option<T>` (call `as_ref()` at the call site). A borrowed parameter accepts
@@ -81,8 +85,9 @@ owned values, borrows, and literals through deref coercion, and `&String` or
 
 The other direction matters just as much. When the function needs to own the
 value — to store it, send it, or consume it — take it by value and let the caller
-decide whether to clone or move. Never take `&T` and clone inside: the caller
-who had an owned value to give is forced to pay a copy anyway. And bound a
+decide whether to clone or move. Prefer taking ownership when every call needs it. A borrowing API that copies
+only conditionally, or an existing compatibility contract, may justify taking
+`&T` and cloning inside. And bound a
 generic by `Copy` only when the body requires it, not to announce that the
 type is cheap.
 
@@ -180,8 +185,10 @@ across `.await` points is `/async-rust`.
 
 ## Verification
 
-Keeping or removing a clone changes no behaviour, so the claim "this still works"
-is settled by the suite, at the lint level the repo configures:
+Clone changes can affect aliasing, snapshots, resource lifetime and concurrency.
+Verify the relevant behavioural contract, including independent mutation or
+shared-state identity where applicable. Inspect supported workspace features and
+MSRV and run the repository's checks; for a typical crate:
 
 ```bash
 cargo clippy --all-targets   # add -- -D warnings only if the repo has no lint config
