@@ -20,14 +20,14 @@ from the `async` keyword:
 let a = fetch_user(id).await;
 let b = fetch_orders(id).await;
 
-// Concurrent: both futures are polled at the same time.
+// Concurrent: both futures are polled within the same task, not in parallel.
 let (a, b) = tokio::join!(fetch_user(id), fetch_orders(id));
 ```
 
-Every `.await` in a function adds to the size of the generated future, and a
-large future is copied on every move — into `Box::pin`, into a `JoinSet`.
-Many awaits and large locals mean kilobytes; box the inner future or split
-the function once a profile says the moves matter.
+Future size depends on captured data and state retained across suspension
+points, compiler layout and the target. It does not grow by a fixed amount per
+`await`. Boxing adds allocation and indirection; measure layout and runtime
+cost before splitting or boxing a future.
 
 Three habits keep futures small. Shrink what lives across an `.await`: a big
 buffer or collection that is not used after the suspension point should be
@@ -64,18 +64,23 @@ A CPU-bound loop, a synchronous file or network call, or a compute stretch
 without an `.await` inside an `async fn` stalls the executor thread and starves
 every other task on it. The fix: `tokio::task::spawn_blocking` for blocking I/O
 and short CPU work, a dedicated thread pool (`rayon`) for sustained CPU work,
-and never a `std::thread::sleep` inside a task. For a compute loop, yielding
-periodically is the weaker fix and only works when each chunk between yields is
-genuinely short. If yielding is the choice, put `tokio::task::yield_now().await`
+and never a `std::thread::sleep` inside a task. Bound admitted work and blocking concurrency with a semaphore, bounded queue
+or dedicated pool; a started `spawn_blocking` task cannot be aborted. A timeout
+on its handle is not a timeout on the blocking operation. Pass cooperative stop
+signals where the work supports them and account for shutdown deadlines. For a
+compute loop, yielding periodically is the weaker fix and only works when each
+chunk between yields is genuinely short. If yielding is the choice, put `tokio::task::yield_now().await`
 inside the loop so a yield lands after somewhere between 10 and 100 microseconds
 of work (a rule of thumb, not a measured bound). Yield rarely and neighbouring
 tasks starve; yield constantly and the switching costs more than it frees.
 
 ## `Send`, `Sync`, and the spawn bound
 
-`tokio::spawn` requires `Send + 'static`: everything held *across* an `.await`
-must be `Send` — where `Rc` and `RefCell` fail to compile, and where a
-`std::sync::MutexGuard` held across an `.await` becomes a deadlock:
+`tokio::spawn` requires the future and its output to be `Send + 'static`.
+Captured state and values retained across suspension must permit that bound.
+A `!Send` value used and dropped between suspension points may be valid;
+`spawn_local` is an option on a deliberately local executor. A synchronous
+mutex held across an await can cause deadlock or a non-Send future:
 
 ```rust,ignore
 // Deadlock waiting to happen: the std guard is held across the await.
@@ -91,15 +96,18 @@ let mut guard = state.lock().await; // tokio::sync::Mutex
 guard.value = fetch().await;
 ```
 
-Prefer `std::sync::Mutex` unless the lock must span an `.await`, then
-`tokio::sync::Mutex` — `clippy::await_holding_lock` catches the common case.
+Prefer `std::sync::Mutex` for short, low-contention synchronous critical sections
+that never span an `.await`. For async I/O resources or genuine async lock
+requirements, use an async mutex or a single owner task; avoid awaiting external
+calls while holding shared state unless the invariant requires it — `clippy::await_holding_lock` catches the common case.
 
 ## Cancellation safety
 
-Any future can be dropped at any `.await` point — that is what `select!` and
-timeouts do. A future that has consumed input but not yet committed it loses
-data when dropped mid-flight. The rule: do the irreversible step in one
-non-cancellable piece, or make the operation resumable. The worked cases
+A pending future can be dropped at a suspension point, including when a
+`select!` branch loses or a timeout expires. Dropping runs synchronous
+destructors but cannot await cleanup or undo external side effects. Preserve
+progress in caller-owned state, make retries idempotent, or finish admitted work
+outside the cancellation race. Handle unknown commit outcomes explicitly. The worked cases
 live in `CANCELLATION.md`.
 
 ## Shared state across tasks
@@ -113,10 +121,11 @@ its state and is told what to do beats tasks that reach into shared memory.
 | `mpsc` | Many producers to one consumer |
 | `oneshot` | A single reply |
 | `watch` | The latest value, where missing intermediate values is correct |
-| `broadcast` | Every receiver seeing every message, with a bounded backlog |
+| `broadcast` | Fan-out with bounded retention; slow receivers can lag and lose messages |
 
-The choice is semantic, not performance — picking `broadcast` where `watch`
-was meant produces a lagging receiver error nobody expected.
+Choose by delivery and ordering semantics. Prefer bounded `mpsc` when load
+must exert backpressure; define queue capacity, admission timeout, overload
+policy and lag recovery. Do not claim `broadcast` provides reliable delivery.
 
 Dynamic task groups and their abort semantics are in `CANCELLATION.md`.
 
@@ -145,7 +154,9 @@ cargo test
 ```
 
 The async-relevant lints (`await_holding_lock`, `await_holding_refcell_ref`,
-`async_yields_async`) come out of its output, not switched on. Async bugs
-are timing-dependent — a passing `cargo test` is weak evidence: where
-the repo uses `#[tokio::test]`, cover the changed path with
-`#[tokio::test(flavor = "multi_thread", worker_threads = 2)]`.
+`async_yields_async`) come out of its output, not switched on. Async bugs are timing-dependent. Test both normal completion and cancellation
+at relevant await boundaries, queue saturation, timeout and shutdown, using
+controlled clocks and synchronization rather than arbitrary sleeps. Where the
+repo uses Tokio, exercise the supported runtime flavours, including a
+multi-thread runtime for cross-thread behaviour; use the project's feature
+matrix. A passing test run does not prove absence of deadlock.

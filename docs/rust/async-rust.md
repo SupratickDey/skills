@@ -27,9 +27,9 @@ runtime, is made before it applies.
 - **Async is not free concurrency.** A future does nothing until polled;
   concurrency comes from combining futures. Serial `.await`s that were meant to
   run concurrently become `tokio::join!`.
-- **The spawn bound.** `tokio::spawn` needs `Send + 'static`; everything held
-  across an `.await` must be `Send` — where `Rc`/`RefCell` fail to compile, and
-  where a `std::sync` guard held across the await becomes a deadlock. Default:
+- **The spawn bound.** `tokio::spawn` requires the future and output to be `Send + 'static`; captured
+  and suspended state must satisfy the future bound — where `Rc`/`RefCell` fail to compile, and
+  where a `std::sync` guard held across the await can deadlock. Default:
   `std::sync::Mutex` with a critical section that never crosses an `.await`;
   `tokio::sync::Mutex` only when the lock must span one.
 - **Future size.** Shrink state held across an `.await`, move non-suspending
@@ -39,7 +39,8 @@ runtime, is made before it applies.
   `AsyncWrite` bounds. The explicit `impl Future` form is for trait methods and
   hot functions only.
 - **Blocking work.** `spawn_blocking` for blocking I/O and short CPU work,
-  `rayon` for sustained CPU, never `std::thread::sleep` in a task. When yielding
+  `rayon` for sustained CPU, never `std::thread::sleep` in a task. Bound admitted
+  work; started blocking tasks cannot be aborted. When yielding
   instead, `yield_now().await` after roughly 10 to 100 microseconds of work (a rule of thumb). The symptom
   is latency on unrelated tasks, not the offending one.
 - **Shared state.** `Arc<Mutex<T>>` for shared mutation, channels for handing
@@ -47,11 +48,11 @@ runtime, is made before it applies.
 
 ## Cancellation safety
 
-Any future can be dropped at any await point — that is what `select!` and
-timeouts do. An operation is cancellation-safe if the drop leaves no work
-half-done and loses no data already taken. The `select!` trap (take input before
-the race), the common-operation table (`recv` and `sleep` safe; a transaction
-future not), timeouts as scheduled drops, and the two structural fixes
+A pending future can be dropped at suspension. Cancellation safety means
+restarting does not lose contract-relevant progress. Race only safe admission
+or keep progress outside the future. `recv` and `sleep` are safe; `read_exact`
+can lose consumed bytes and cancelling a mutex wait loses queue position.
+A timeout is not proof a remote operation or blocking task stopped. The structural fixes
 (write-then-acknowledge; resumable checkpoints) live in `CANCELLATION.md`,
 alongside the graceful-shutdown pattern and the cancellation-token mechanics.
 
@@ -59,8 +60,8 @@ alongside the graceful-shutdown pattern and the cancellation-token mechanics.
 
 Pick the channel by what it means, not by speed: `mpsc` for many producers to
 one consumer, `oneshot` for a single reply, `watch` for the latest value where
-missing intermediate values is correct, `broadcast` for every receiver seeing
-every message with a bounded backlog. Picking `broadcast` where `watch` was
+missing intermediate values is correct, `broadcast` for fan-out with bounded retention; slow receivers may lose messages and must
+handle lag. Picking `broadcast` where `watch` was
 meant produces a lagging receiver error nobody expected.
 
 ## Common questions
@@ -88,7 +89,8 @@ ordering bugs. Run the changed path with
 - Every `select!` branch is cancellation-safe or documented as the deliberate
   loser.
 - A timeout wraps only operations that are safe to drop mid-flight.
-- Shutdown is a token, not a dropped handle.
+- Shutdown stops admission, signals workers and joins them within a defined
+  budget. Dropping a `JoinHandle` detaches; aborting is an explicit escalation.
 - `cargo test` passes — with the multi-thread flavour where the repo already
   uses `#[tokio::test]`.
 

@@ -15,12 +15,14 @@ threads, and it stops where task concurrency begins — runtime, executors,
 - Independent units of work that are mostly waiting: task concurrency,
   `/async-rust`, not here.
 - State several threads read and write: shared state — the one to reach for
-  last, because it is the only one of the three that can deadlock.
+  last when explicit ownership or message passing fits. Any model can deadlock
+  through cyclic waits, bounded channels or nested synchronization.
 
 ## Data parallelism
 
-`par_iter()` is a one-word change to an iterator chain that already exists —
-exactly why the chain was worth writing. The precondition: the per-item work
+`par_iter()` can parallelize independent work, but preserve ordering,
+error behaviour, side effects and reduction semantics. Floating-point
+reductions can differ when the evaluation order changes. The precondition: the per-item work
 has to be large enough to pay for the scheduling. A `par_iter` over a million
 cheap closures is often slower, and is the standard disappointment.
 
@@ -45,8 +47,9 @@ Reach for a scope before an `Arc` or a clone buys the second thread.
 
 ## Channels for handoff
 
-A channel moves ownership with the message — no lock to hold, nothing to
-poison. Sender-drop is the shutdown signal: `recv` reports disconnection.
+A channel moves ownership with the message, avoiding direct shared mutation.
+Dropping all senders signals closure; buffered messages may still be delivered.
+Bound queues, define overload and drain policy, and avoid cyclic blocking sends.
 Bounded versus unbounded is backpressure: an unbounded channel silently
 converts a throughput problem into a memory problem.
 
@@ -67,18 +70,20 @@ access, and can starve writers. Rules for using a lock well:
   code that might lock again. That includes invoking a closure or callback while
   the guard is live: the caller decides what it does.
 - Do not return a `MutexGuard` to a caller. It leaks the locking discipline across
-  an API boundary; return the value, or take a closure that runs inside the lock.
+  an API boundary; return a snapshot or perform a narrowly scoped internal operation. Avoid
+  invoking caller-provided callbacks under the guard.
 - If two locks must be held together, take them in one agreed order. Fall back to a
   written lock hierarchy only once restructuring to need one lock, or none,
   has failed.
 
-A `Mutex` whose holder panicked is poisoned, and `lock()` hands back an `Err`.
+A standard mutex can be poisoned after a panic; poisoning is advisory and
+not a guarantee of invariant integrity. `lock()` reports detected poison.
 Three positions exist, and which applies depends on what the protected data
 looks like after the panic:
 
 | Position | When it applies |
 |---|---|
-| Propagate the error, or recover with `into_inner()` and a written reason | The default. The holder panicked, but the data is still consistent (a counter, a cache that can be rebuilt); say so in a comment |
+| Propagate the error, or recover with `into_inner()` | Propagate by default. Recover only after verifying or rebuilding protected invariants; document the policy and clear poison if appropriate |
 | Never touch the data behind a poisoned lock | The stricter line, for state where a half-finished update could be mistaken for a good one |
 | Panic on poison (`lock().unwrap()`, `expect`) | A deliberate stop when the state cannot be trusted and nothing can repair it. Write the reason; it is a decision, not a shortcut |
 
@@ -86,9 +91,9 @@ What is ruled out is the reflexive `unwrap` that was never weighed.
 
 ## Libraries and threads
 
-Library code does not start threads of its own. Spawning is a program-level
-decision about cost and shutdown; a library that does it hides threads from the
-caller and cannot be embedded in a runtime or sandbox that forbids them. Take a
+Prefer caller-managed execution. A library may own threads if that is part of
+its explicit contract, with bounded resources, a documented lifecycle and a
+shutdown/join mechanism; never silently spawn unbounded background work. Take a
 closure, an executor handle, or run work on the caller's thread, and let the
 binary decide.
 
@@ -96,7 +101,8 @@ binary decide.
 
 The rule: `Relaxed` for a counter nobody synchronises on, `Acquire`/`Release`
 for a paired handoff where one thread publishes and another observes,
-`SeqCst` when unsure and the cost is acceptable. The pair is the one that is
+`SeqCst` when the algorithm requires a global order. Stronger ordering cannot
+repair a broken synchronization protocol; if the proof is unclear, use a lock. The pair is the one that is
 wrong most often:
 
 ```rust
@@ -146,7 +152,7 @@ Throughput of the parallel version is `/rust-performance`.
 ## Verification
 
 ```bash
-cargo test                    # including the ignored-by-default stress tests, if the repo has any
+cargo test                    # run relevant ignored stress tests separately when configured
 cargo clippy --all-targets    # at the level the repo configures
 cargo miri test               # where atomics or unsafe Send/Sync are involved
 ```
@@ -159,6 +165,7 @@ lock order becomes a red build instead of a production hang.
 
 Clippy runs at the lint level the target repo configures; `-D warnings`
 is the fallback only when the repo configures no lints at all. Lock-free
-structures and non-trivial ordering arguments want `loom` — it explores
-interleavings exhaustively rather than hoping the scheduler picks the
-bad one; it runs under its own cfg, and the model has to be small.
+structures and non-trivial ordering arguments want `loom` — it explores interleavings of the bounded model under its configured limits,
+not every behaviour of the production system. Follow the repository's Loom
+configuration; run stress tests with their actual flags and report bounds and
+unexecuted checks. Miri can find bugs in exercised paths, not prove soundness.

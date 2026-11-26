@@ -28,8 +28,8 @@ concurrency (`/async-rust`), whether the state should be shared at all
 
 The per-item work has to be large enough to pay for the scheduling; a
 `par_iter` over a million cheap closures is the standard disappointment.
-Scoped threads remove the `'static` bound that forces an `Arc` when a
-thread only needs to borrow stack data.
+Scoped threads allow borrowing stack data. Parallel work must preserve
+ordering and reduction semantics; channel-based designs can also deadlock.
 
 ## Shared state and orderings
 
@@ -37,19 +37,22 @@ thread only needs to borrow stack data.
   read-heavy access, and can starve writers. Safe Rust rules out data races but
   not deadlocks or logic races, so prefer message passing.
 - **Lock discipline.** Data with linked invariants shares one lock, no closure
-  runs while a guard is live, a `MutexGuard` is never returned to a caller, and
+  supplied by a caller runs while a guard is live, a `MutexGuard` should not be
+  returned across ordinary API boundaries, and
   a written lock hierarchy is the last resort.
 - **Poisoning is a decision, not an error to swallow.** Default: propagate the
   `Err`, or `into_inner()` with a written reason when the data is still
   consistent. Stricter: never touch data behind a poisoned lock. A deliberate
   panic on poison is legitimate when the state cannot be trusted and nothing can
   repair it.
-- **Libraries do not start threads.** The binary decides.
+- **Thread lifecycle is explicit.** Prefer caller-owned execution. A library
+  owning threads documents resource bounds, lifecycle and shutdown.
 - **Guards are scoped.** The guard lives for the shortest possible scope,
   never across a call into code that might lock again — the deadlock a
   shared-state design invites.
 - **Orderings are paired.** `Relaxed` for a counter nobody synchronises on,
-  `Acquire`/`Release` for a publish/observe handoff, `SeqCst` when unsure.
+  `Acquire`/`Release` for a publish/observe handoff, `SeqCst` when the protocol requires it; stronger ordering cannot repair an
+  incorrect algorithm.
   When the ordering argument cannot be written in two sentences, the code
   wants a `Mutex`.
 - **A global has no visible owner.** `thread_local!` over
@@ -70,10 +73,9 @@ after the holder panicked" — and once that argument is written, it is the
 reason for `into_inner`, not for the `unwrap`.
 
 **Do I need `loom`?** Only for a hand-written lock-free structure or a
-non-trivial ordering argument. It explores interleavings exhaustively
-rather than hoping the scheduler picks the bad one; it runs under its own
-cfg and needs the model to be small. Ordinary threaded code settles with
-`cargo test` and `cargo miri test`.
+non-trivial ordering argument. It explores interleavings of a small bounded model under configured limits,
+not the entire production program; it runs under its own cfg. Run relevant configured stress tests explicitly; ordinary tests and Miri are
+useful evidence, not proof that every schedule is safe.
 
 ## It's working if
 
