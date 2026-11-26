@@ -42,7 +42,7 @@ source actually does, bugs included. The harness shapes are
 implementation still present and still callable.
 
 **Done when.** The module ported is the lowest-dependency one
-remaining, or a measured cohesive hot operation for selective acceleration (D).
+remaining, or a measured cohesive hot operation for selective acceleration (a variant of B).
 A leaf validates in isolation; porting top-down means
 every module below it is a stub the harness cannot exercise, so the
 "green" says nothing about the real dependency. The corollary for
@@ -73,10 +73,10 @@ the phase ends with it documented, versioned, and packaged for every
 platform the old package supported; a B port that ships artifacts
 for one platform when the source shipped four has not cut over.
 
-**Done when.** For A/B/C, traffic goes to the Rust implementation only and the
-superseded source implementation is gone. For D, only the selected hot unit is
-replaced, and the host remains. Require end-to-end performance evidence,
-platform packaging and approved rollout/rollback criteria before enabling D.
+**Done when.** For full replacement of the selected unit, traffic goes to Rust only and the
+superseded source implementation is gone. For selective acceleration under B,
+only the selected hot unit is replaced, and the host remains. Require end-to-end performance evidence,
+platform packaging and approved rollout/rollback criteria before enabling selective acceleration.
 Retain a live fallback only with an explicit owner, maintenance policy, and
 verification of both implementations; otherwise use a versioned rollback artifact.
 

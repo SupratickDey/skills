@@ -32,7 +32,7 @@ definition of done, so it finishes when someone gets tired.
 | 2. Characterize | The existing behaviour is captured as executable tests — against the source implementation, not the intended one |
 | 3. Port incrementally | A low-dependency unit or measured hot operation is in Rust behind the seam, with both implementations still callable |
 | 4. Compare both | Representative recorded, generated and held-out inputs are compared in isolation without duplicating live side effects |
-| 5. Cut over | The selected unit runs in Rust; remove the superseded source for A/B/C or apply the approved fallback policy for D |
+| 5. Cut over | The selected unit runs in Rust; remove superseded source, or apply the approved fallback policy for selective acceleration |
 
 Phase 2 characterizes the behaviour that exists, bugs included — a test that
 asserts the intended behaviour is a bug report disguised as a test. Phase 5
@@ -42,7 +42,7 @@ conditions for selective acceleration are in `PHASES.md`.
 
 ## Decide the end state before the seam
 
-Four end states; the choice governs everything downstream — the seam, the
+Three end states; the choice governs everything downstream — the seam, the
 contract, the verification, whether bindings are deliverable or scaffold:
 
 | End state | What ships | Bindings |
@@ -50,7 +50,6 @@ contract, the verification, whether bindings are deliverable or scaffold:
 | A. Replacement | A standalone Rust binary or crate; the source implementation is deleted | None, ever. The seam is a process, CLI, or network boundary |
 | B. Rust core with a language binding as the product | A Rust engine plus a binding layer that stays — the package the existing consumers import is the deliverable | Permanent. The binding surface is public API: it gets semver, error-type mapping, packaging per platform, and its own docs |
 | C. Bindings as scaffold | A standalone Rust binary or crate, reached through a binding layer that is deleted at cut-over | Temporary. Built to be thrown away, and phase 5 is not done until it is gone |
-| D. Selective acceleration | The host application stays in its original language; only measured computational bottlenecks move to Rust | Permanent internal boundary; preserve host contracts, packaging and deployment compatibility |
 
 B and C are not the same work, and conflating them is the most expensive
 mistake here. Scaffold bindings may be crude because they die; product
@@ -61,7 +60,11 @@ the parity contract, because it changes what the unit of parity is: for A
 the unit is an invocation or a request; for B it is the binding signature
 the existing callers already call.
 
-## Selective acceleration (D)
+## Selective acceleration (a variant of B)
+
+When the existing application remains the product, a permanent native binding
+can accelerate only selected computations. Record B (selective acceleration)
+in the parity contract; the existing per-language B guidance still applies.
 
 Profile a representative end-to-end workload before selecting a unit. Prefer a
 cohesive computation that crosses the language boundary once per batch over a
@@ -169,7 +172,7 @@ rustfmt --check <files the port created>   # never reformat files outside the po
 ```
 
 Select supported workspace members, targets and feature combinations from the
-repo; use all-features only when it is a supported combination. For D, also run
+repo; use all-features only when it is a supported combination. For selective acceleration, also run
 host integration tests, release benchmarks and rollback checks on target platforms.
 Run the source tests too when the source toolchain is available, and
 compare results with the Rust tests on the same inputs. Then run the

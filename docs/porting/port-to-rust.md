@@ -42,7 +42,7 @@ finished?
   packaging per platform, and its own docs.
 - **C — scaffold bindings.** A binding layer built to be thrown
   away; phase 5 is not done until it is deleted.
-- **D: selective acceleration.** Keep the existing host application and port
+- **B variant: selective acceleration.** Keep the existing host application and port
   only measured hot operations to Rust. Include boundary costs in release-mode
   end-to-end benchmarks, validate packaging and define rollback before cut-over.
 
@@ -65,7 +65,7 @@ implementations disagree — is in `PARITY-CONTRACT.md`.
    Rust, called through the seam, with both implementations still callable.
 4. **Compare both:** representative, generated and held-out cases run in
    isolation; do not repeat live side effects.
-5. **Cut over:** remove superseded source for A/B/C; for D, preserve the host
+5. **Cut over:** remove superseded source; for selective acceleration under B, preserve the host
    and retain a fallback only if it is explicitly maintained and tested.
 
 What each phase produces, what done looks like, and the failure
@@ -139,7 +139,7 @@ first and stays running through the port.
 
 ## It's working if
 
-- The end state (A, B, C or D) is written down before any Rust was
+- The end state (A, B or C, with selective acceleration noted if applicable) is written down before any Rust was
   written.
 - A written parity contract exists before any Rust was written.
 - The characterization tests pass against the source
@@ -147,7 +147,7 @@ first and stays running through the port.
 - The differential run reports a denominator — the count of inputs
   compared and the count of differences — not just a pass.
 - No commit mixes a behaviour change with a port.
-- The superseded source was deleted for A/B/C; for D, the host remains and any
+- The superseded source was deleted for full replacement; for selective acceleration under B, the host remains and any
   approved fallback is maintained and tested. End-to-end benchmarks include
   boundary overhead.
 - The Rust module structure was chosen, not inherited.

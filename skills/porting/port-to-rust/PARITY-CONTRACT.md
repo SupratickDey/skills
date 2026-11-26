@@ -18,15 +18,15 @@ language after the port is finished?
   the port.
 - If yes only until cut-over, **C — scaffold bindings**: a binding
   layer built to be thrown away and deleted in phase 5.
-- If the host application stays and only selected hot operations move,
-  **D: selective acceleration**. Name the measured unit, internal boundary,
+- Within B, if the host application stays and only selected hot operations move,
+  record **B (selective acceleration)**. Name the measured unit, internal boundary,
   host-visible signatures, deployment targets, performance objective and
   rollback policy. The rest of the host is outside the port.
 
 The consequence for the contract: under B the binding signatures are
 part of the parity unit, and changing one is a breaking change, so
 the contract names them. Under A and C the binding layer has no
-parity obligations beyond the phase it exists in. Under D, the host-visible
+parity obligations beyond the phase it exists in. For selective acceleration under B, the host-visible
 contract stays stable and both paths must be checked if a fallback is retained.
 
 ## The four questions
