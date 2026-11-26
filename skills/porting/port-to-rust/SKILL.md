@@ -30,19 +30,19 @@ definition of done, so it finishes when someone gets tired.
 |---|---|
 | 1. Inventory and seam | The boundary the Rust will live behind is named, and the call sites crossing it are counted |
 | 2. Characterize | The existing behaviour is captured as executable tests — against the source implementation, not the intended one |
-| 3. Port leaf-first | The lowest-dependency module is in Rust, called through the seam, with both implementations still present |
-| 4. Run both | Every input reaching the seam goes through both implementations and the outputs are compared |
-| 5. Cut over and delete | Traffic goes to Rust only, and the source implementation is deleted rather than left as a dead fallback |
+| 3. Port incrementally | A low-dependency unit or measured hot operation is in Rust behind the seam, with both implementations still callable |
+| 4. Compare both | Representative recorded, generated and held-out inputs are compared in isolation without duplicating live side effects |
+| 5. Cut over | The selected unit runs in Rust; remove the superseded source for A/B/C or apply the approved fallback policy for D |
 
 Phase 2 characterizes the behaviour that exists, bugs included — a test that
 asserts the intended behaviour is a bug report disguised as a test. Phase 5
-is not optional: a source implementation left in place stops being maintained
-and starts being a lie about what runs; the depth on each phase is in
-`PHASES.md`.
+is not optional: remove dead implementations rather than retain an untested
+fallback. A maintained, explicitly approved rollback path is different; the
+conditions for selective acceleration are in `PHASES.md`.
 
 ## Decide the end state before the seam
 
-Three end states; the choice governs everything downstream — the seam, the
+Four end states; the choice governs everything downstream — the seam, the
 contract, the verification, whether bindings are deliverable or scaffold:
 
 | End state | What ships | Bindings |
@@ -50,6 +50,7 @@ contract, the verification, whether bindings are deliverable or scaffold:
 | A. Replacement | A standalone Rust binary or crate; the source implementation is deleted | None, ever. The seam is a process, CLI, or network boundary |
 | B. Rust core with a language binding as the product | A Rust engine plus a binding layer that stays — the package the existing consumers import is the deliverable | Permanent. The binding surface is public API: it gets semver, error-type mapping, packaging per platform, and its own docs |
 | C. Bindings as scaffold | A standalone Rust binary or crate, reached through a binding layer that is deleted at cut-over | Temporary. Built to be thrown away, and phase 5 is not done until it is gone |
+| D. Selective acceleration | The host application stays in its original language; only measured computational bottlenecks move to Rust | Permanent internal boundary; preserve host contracts, packaging and deployment compatibility |
 
 B and C are not the same work, and conflating them is the most expensive
 mistake here. Scaffold bindings may be crude because they die; product
@@ -59,6 +60,26 @@ native extension module answers a question nobody asked. The answer goes in
 the parity contract, because it changes what the unit of parity is: for A
 the unit is an invocation or a request; for B it is the binding signature
 the existing callers already call.
+
+## Selective acceleration (D)
+
+Profile a representative end-to-end workload before selecting a unit. Prefer a
+cohesive computation that crosses the language boundary once per batch over a
+small function called in a tight loop. Check algorithmic improvements in the
+source first. Estimate the maximum possible application gain from the measured
+fraction of time spent in the candidate; then measure the real gain including
+FFI dispatch, marshalling, copies and initialization. Do not use a universal
+hotspot percentage or promise a speedup before measuring. Keep I/O, mutable
+shared state and externally visible side effects in the host unless the contract
+explicitly requires moving them. Use the existing binding and deployment model.
+
+Keep the original implementation callable during verification. Cut over only
+with parity, performance, platform packaging and user-authorized deployment
+criteria satisfied. A feature-controlled fallback may remain only if it has an
+owner, explicit expiry or ongoing maintenance commitment, and tests of both
+paths. Otherwise remove the superseded unit and retain a versioned rollback
+artifact. Do not remove unrelated host code. Route benchmarking to
+`/rust-performance` and boundary safety to `/rust-ffi`.
 
 ## Pick the incremental strategy from the seam, not from taste
 
@@ -113,8 +134,8 @@ diverges on rare input, say so in the notes. Expose the same public items
 plus the conventional trait impls, keep the algorithm unless it is wrong,
 and read code size (tests and comments left out) as a warning light: close
 to the source for C and C++, often two to three times for Python,
-JavaScript, and TypeScript, and suspect beyond that. Tens of
-representative inputs, error paths included, are enough to judge parity;
+JavaScript, and TypeScript, and suspect beyond that. Choose corpus size from the contract and risk; cover representative inputs,
+errors, boundary cases and independent validation inputs. No fixed count proves parity;
 the habits and their fixes are in `ANTIPATTERNS.md`.
 
 ## Leave notes for the reviewer
@@ -141,12 +162,15 @@ porting; the full list, with the tell for each, is in `ANTIPATTERNS.md`.
 Run these yourself and fix what they report:
 
 ```bash
-cargo build --all-targets --all-features
-cargo test --all-features        # includes the differential and characterization tests
-cargo clippy --all-targets --all-features   # add -- -D warnings only if the target repo has no lint config
+cargo build --all-targets
+cargo test                      # includes the differential and characterization tests
+cargo clippy --all-targets      # add -- -D warnings only if the target repo has no lint config
 rustfmt --check <files the port created>   # never reformat files outside the port
 ```
 
+Select supported workspace members, targets and feature combinations from the
+repo; use all-features only when it is a supported combination. For D, also run
+host integration tests, release benchmarks and rollback checks on target platforms.
 Run the source tests too when the source toolchain is available, and
 compare results with the Rust tests on the same inputs. Then run the
 differential harness over the recorded corpus and report the count of

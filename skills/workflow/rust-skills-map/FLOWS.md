@@ -54,10 +54,10 @@ the question is whether it is ready to merge.
 
 ## Porting from another language
 
-**Situation.** A Rust implementation is replacing an existing one — C, C++,
-Python, TypeScript, Go, or Java — either outright or behind a boundary that
-stays, and the question is how to sequence the work so the port does not
-drift from the behaviour of its source.
+**Situation.** A Rust implementation is replacing an existing one or accelerating selected
+hot operations in a host that stays. The question is how to sequence the work
+without drifting from source behaviour. For acceleration, start with a
+representative profile and use `/rust-performance` to verify end-to-end gains.
 
 **The route.**
 

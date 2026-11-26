@@ -8,3 +8,10 @@
 - [PartialOrd](https://doc.rust-lang.org/std/cmp/trait.PartialOrd.html): partial comparison can return None; comparison implementations must agree.
 - [Ord](https://doc.rust-lang.org/std/cmp/trait.Ord.html): total ordering requires consistent equality and partial ordering.
 - [Cargo features](https://doc.rust-lang.org/cargo/reference/features.html): choose checks for supported feature configurations.
+
+## Performance and selective migration
+
+- [fast-anything README](https://github.com/EL4CTEO/fast-anything/blob/bca1c15ad90efec263a6b3f3479a6d9843ac325b/README.md) and [skill](https://github.com/EL4CTEO/fast-anything/blob/bca1c15ad90efec263a6b3f3479a6d9843ac325b/skills/fast-anything/SKILL.md): inspiration for measured hotspot selection, held-out replay, reversible activation and A/A controls. Independently worded guidance; no dependency or claimed benchmark transfer.
+- [Rust Iterator](https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.zip): unequal lengths terminate zip early.
+- [Rust Cargo profiles](https://doc.rust-lang.org/cargo/reference/profiles.html): release and benchmark build settings.
+- [Rust f64](https://doc.rust-lang.org/std/primitive.f64.html): floating-point special values and comparison semantics.

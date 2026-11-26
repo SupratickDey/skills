@@ -2,8 +2,9 @@
 
 Runs a port into Rust as a behaviour-preserving move: it records the
 end state, writes the parity contract, sequences the five phases,
-and requires parity to be proven differentially before the source
-implementation is deleted. The defining constraint: it owns the
+and requires differential parity before cut-over. Full replacement removes the
+superseded implementation; selective acceleration preserves the host and follows
+an explicit fallback policy. The defining constraint: it owns the
 process common to every port and carries no construct mapping for
 any source language — the construct mapping for a specific
 language lives in the per-language skills.
@@ -41,6 +42,9 @@ finished?
   packaging per platform, and its own docs.
 - **C — scaffold bindings.** A binding layer built to be thrown
   away; phase 5 is not done until it is deleted.
+- **D: selective acceleration.** Keep the existing host application and port
+  only measured hot operations to Rust. Include boundary costs in release-mode
+  end-to-end benchmarks, validate packaging and define rollback before cut-over.
 
 The contract then answers four questions: the unit of parity, which
 differences are acceptable, which are not, and how parity is
@@ -57,14 +61,12 @@ implementations disagree — is in `PARITY-CONTRACT.md`.
 2. **Characterize** — the existing behaviour is captured as
    executable tests, against the source implementation, bugs
    included.
-3. **Port leaf-first** — the lowest-dependency module is in Rust,
-   called through the seam, with both implementations still
-   present.
-4. **Run both** — every input reaching the seam goes through both
-   implementations and the outputs are compared.
-5. **Cut over and delete** — traffic goes to Rust only, and the
-   source implementation is deleted rather than left as a dead
-   fallback.
+3. **Port incrementally:** a low-dependency module or measured hot unit is in
+   Rust, called through the seam, with both implementations still callable.
+4. **Compare both:** representative, generated and held-out cases run in
+   isolation; do not repeat live side effects.
+5. **Cut over:** remove superseded source for A/B/C; for D, preserve the host
+   and retain a fallback only if it is explicitly maintained and tested.
 
 What each phase produces, what done looks like, and the failure
 that skipping it causes is in `PHASES.md`.
@@ -87,9 +89,9 @@ for those inputs is added only if the user confirms they exist.
   ports land near the source; Python, JavaScript, and TypeScript ports
   often land at two to three times. Much more points at one of the habits
   above. It is a warning light, not a target.
-- **Differential testing:** tens of representative inputs, error paths
-  included, are enough to judge parity; rare divergences from a large
-  campaign belong in the notes.
+- **Differential testing:** size coverage by the contract and risk, including
+  boundary, error and held-out cases. Report mismatches and skips; do not dismiss
+  rare divergences on supported inputs.
 
 The reviewer gets `PORTING.md` (or the file name the user gives): item
 correspondence, test correspondence, intended divergences, quirks kept
@@ -137,7 +139,7 @@ first and stays running through the port.
 
 ## It's working if
 
-- The end state (A, B, or C) is written down before any Rust was
+- The end state (A, B, C or D) is written down before any Rust was
   written.
 - A written parity contract exists before any Rust was written.
 - The characterization tests pass against the source
@@ -145,8 +147,9 @@ first and stays running through the port.
 - The differential run reports a denominator — the count of inputs
   compared and the count of differences — not just a pass.
 - No commit mixes a behaviour change with a port.
-- The source implementation was deleted at cut-over rather than
-  left in place.
+- The superseded source was deleted for A/B/C; for D, the host remains and any
+  approved fallback is maintained and tested. End-to-end benchmarks include
+  boundary overhead.
 - The Rust module structure was chosen, not inherited.
 - A `PORTING.md` maps the API and the tests, and lists deliberate
   differences, preserved quirks, follow-ups, and the commands run.

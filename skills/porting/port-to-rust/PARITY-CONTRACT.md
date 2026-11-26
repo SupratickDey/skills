@@ -18,11 +18,16 @@ language after the port is finished?
   the port.
 - If yes only until cut-over, **C — scaffold bindings**: a binding
   layer built to be thrown away and deleted in phase 5.
+- If the host application stays and only selected hot operations move,
+  **D: selective acceleration**. Name the measured unit, internal boundary,
+  host-visible signatures, deployment targets, performance objective and
+  rollback policy. The rest of the host is outside the port.
 
 The consequence for the contract: under B the binding signatures are
 part of the parity unit, and changing one is a breaking change, so
 the contract names them. Under A and C the binding layer has no
-parity obligations at all beyond the phase it exists in.
+parity obligations beyond the phase it exists in. Under D, the host-visible
+contract stays stable and both paths must be checked if a fallback is retained.
 
 ## The four questions
 
@@ -40,7 +45,8 @@ Each with what a bad answer looks like.
   branch on: exit codes, error classes, numeric results, observable
   ordering. Bad answer: unwritten — every difference becomes a shrug.
 - **How is parity measured?** A named corpus, a harness that runs it
-  in CI, a denominator that gets reported. Bad answer: "we'll test
+  in CI, a denominator that gets reported. Include errors, boundary and held-out
+  cases, explicit numeric tolerance where needed, and approved fixture handling. Bad answer: "we'll test
   it" — no corpus, no denominator.
 
 ## A filled-in example
