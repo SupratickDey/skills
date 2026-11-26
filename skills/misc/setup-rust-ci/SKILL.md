@@ -66,6 +66,20 @@ schedule rather than on every push. Code that differs per platform needs the
 same treatment: a job on each platform that has distinct code, not only the
 one the maintainers use.
 
+## Supported configuration matrix
+
+Use package-specific metadata and the recorded supported combinations.
+Run default, no-default and explicitly supported feature sets as appropriate;
+do not run all-features for mutually exclusive features. cargo hack must be
+configured to exclude unsupported combinations. A no_std library may have
+host tests; keep these alongside target-specific build checks. Cross-compilation
+does not execute target tests. Identify required native dependencies, target
+runners and external services without inventing credentials or infrastructure.
+Check each package's declared minimum toolchain, including the lockfile and
+dependency resolution policy. Use a locked build when the repository commits
+a compatible lockfile; document any intentional MSRV resolution differences.
+Do not silently regenerate a lockfile to make a failed job pass.
+
 ## Toolchain consistency
 
 When the repo pins its toolchain in `rust-toolchain.toml`, the jobs use that
@@ -125,6 +139,17 @@ read step in `WORKFLOWS.md` does. The job builds and does not test —
 
 Each has to survive a reviewer asking why it is there, because a workflow the
 user cannot justify to their own reviewer will be deleted.
+
+## Workflow trust and permissions
+
+Prefer reviewed immutable action commit SHAs with version comments and a
+deliberate update policy. Version tags in examples are placeholders for that
+review. Disable checkout credential persistence when no push is needed.
+Do not run untrusted PR code with privileged pull_request_target credentials
+or secrets. Separate publishing from validation. Cache keys must account for
+toolchain, platform and dependency inputs; cache presence is not verification.
+Keep required checks visible when jobs are conditional and report unavailable
+runners or tools rather than claiming their tests passed.
 
 ## Never overwrite an existing workflow
 

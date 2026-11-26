@@ -1,154 +1,88 @@
-# Pre-commit hooks, in full
+# Pre-commit hook templates
 
-The three mechanisms ready to paste, the rewrite variant, and the contributing-notes
-block. `SKILL.md` carries the judgment — which mechanism, what goes in the hook, how
-the level is derived — and this file carries the files themselves.
+Adapt to the approved package scope, toolchain and shell. The conservative
+example below checks the working tree only when a relevant staged change
+exists and no tracked working-tree differences remain. It never edits
+source, the index or Git history. It is not exact index-only verification:
+untracked modules or external configuration can still affect the result.
 
-## The `core.hooksPath` script
+## Read-only script
 
-At `.githooks/pre-commit`:
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-staged=$(git diff --cached --name-only --diff-filter=ACM -- '*.rs')
-[ -z "$staged" ] && exit 0
-
-if ! cargo fmt --check -- $staged; then
-  echo "pre-commit: run 'cargo fmt' and re-stage." >&2
-  exit 1
-fi
-
-cargo clippy --all-targets -- --no-deps
-```
-
-Make it executable and point the clone at it:
-
-```bash
-chmod +x .githooks/pre-commit
-git config core.hooksPath .githooks
-```
-
-`core.hooksPath` is per-clone: nothing in the repo enforces that a contributor
-ran the `git config` line, so the install belongs in the contributing notes, and
-CI must never depend on it having been run.
-
-## `lefthook.yml`
-
-```yaml
-pre-commit:
-  parallel: true
-  commands:
-    fmt:
-      glob: "*.rs"
-      run: cargo fmt --check -- {staged_files}
-    clippy:
-      glob: "*.rs"
-      run: cargo clippy --all-targets
-```
-
-`parallel: true` runs the two commands at once, which is what keeps the combined
-hook inside the two-second budget. The one cost is the binary itself — install
-it once per machine.
-
-## `.pre-commit-config.yaml`
-
-Local hooks rather than a third-party mirror, so the cargo version in play is the
-one the repo controls:
-
-```yaml
-repos:
-  - repo: local
-    hooks:
-      - id: cargo-fmt
-        name: cargo fmt
-        entry: cargo fmt --check --
-        language: system
-        types: [rust]
-      - id: cargo-clippy
-        name: cargo clippy
-        entry: cargo clippy --all-targets
-        language: system
-        types: [rust]
-        pass_filenames: false
-```
-
-`pass_filenames: false` on clippy, explained: clippy takes crates, not files.
-Passing filenames to it produces an invocation that silently lints the wrong
-thing — the command runs over the workspace either way, and the hook looks like
-it checked what it did not check. The `fmt` hook keeps the default, because
-`cargo fmt --check --` does take a file list.
-
-## The rewrite-and-restage variant
-
-The variants above report: `cargo fmt --check` fails, and the user formats. This
-one rewrites instead — and only with the restage and the printout, because a
-rewrite that goes unprinted changes what the user is about to commit without
-telling the user.
-
-For the `core.hooksPath` script, the full variant:
+Use this example for a Bash-compatible Cargo workspace after approval.
+Keep it as a shared script for the existing hook manager where appropriate.
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
-staged=$(git diff --cached --name-only --diff-filter=ACM -- '*.rs')
-[ -z "$staged" ] && exit 0
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+paths=$(mktemp)
+trap 'rm -f -- "$paths"' EXIT
 
-dirty=$(git diff --name-only -- $staged)
-if [ -n "$dirty" ]; then
-  echo "pre-commit: staged files also carry unstaged edits:" >&2
-  echo "$dirty" >&2
-  echo "pre-commit: stage or stash them, then commit again." >&2
+git diff --cached --name-only -z --diff-filter=ACDMRT -- > "$paths"
+relevant=0
+while IFS= read -r -d '' path; do
+  case "$path" in
+    *.rs|Cargo.toml|*/Cargo.toml|Cargo.lock|*/Cargo.lock|rustfmt.toml|*/rustfmt.toml|.rustfmt.toml|*/.rustfmt.toml|rust-toolchain|*/rust-toolchain|rust-toolchain.toml|*/rust-toolchain.toml|.cargo/*|*/.cargo/*)
+      relevant=1 ;;
+  esac
+done < "$paths"
+
+if [ "$relevant" -eq 0 ]; then
+  exit 0
+fi
+
+if ! git diff --quiet --; then
+  printf '%s\n' 'pre-commit: unstaged tracked changes; formatting check needs a consistent working tree.' >&2
   exit 1
 fi
 
-cargo fmt -- $staged
-touched=$(git diff --name-only -- $staged)
-if [ -n "$touched" ]; then
-  printf 'pre-commit: reformatted and re-staged:\n' >&2
-  printf '%s\n' "$touched" >&2
-  git add -- $touched
-fi
-
-cargo clippy --all-targets -- --no-deps
+cargo fmt --all --check
 ```
 
-The `dirty` guard matters: `cargo fmt` rewrites the working tree, so a staged
-file that also carries unstaged edits would get formatted at the unstaged state
-and re-staged whole, sweeping the unstaged work into the commit. The guard stops
-the hook and names the files instead.
+The path list is NUL-delimited, and no path is interpolated into a command.
+The conservative guard rejects any unstaged tracked changes when a relevant
+staged change exists, including partially staged files. Explain this
+restriction before adoption. The workspace command can include other
+packages; select the approved scope rather than pretending it checks only
+the staged files. Check untracked inputs and configuration separately if
+the repository requires exact snapshot verification. Fail closed on Git
+or formatter errors. Adapt the temporary directory and Bash requirements
+to the supported operating systems.
 
-For `lefthook.yml`, drop `--check` from the `fmt` run line:
-`cargo fmt -- {staged_files}`. For `.pre-commit-config.yaml`, drop it from the
-entry: `cargo fmt --`. Both then need the same guard, restage, and printout the
-script above carries — refuse files with unstaged edits, re-stage exactly the
-files the formatter touched, and print every one — folded into the `fmt` command
-if the mechanism does not do it on its own.
+## Hook managers
 
-## The contributing-notes block
+For core.hooksPath, place the approved script in the existing hook path or
+a new agreed repository-local directory. Do not replace an existing hook,
+change a global config or install without permission.
 
-Paste into the contributing notes of the target repo — how to install, what
-runs, and how to bypass. Written for the `core.hooksPath` script; swap the
-install line for the mechanism the repo picked (`pre-commit install` for
-pre-commit, the lefthook binary for lefthook):
+For lefthook, add an approved command invoking the same read-only script.
+For pre-commit, use a local system-language hook with pass_filenames false
+and an entry invoking the script. These managers have different handling of
+unstaged changes; verify the actual invocation and do not assume their
+isolation behavior. Do not replace an existing configuration wholesale.
 
-```markdown
-### Pre-commit hook
+## Optional linting
 
-Install, once per clone:
+Add a separate check only when the recorded package/feature selection,
+existing toolchain and measured latency justify it. Cargo clippy operates
+on compilation units, not staged filenames. Keep the configured lint level
+and do not run dependency installation or network-bound tasks in a hook.
 
-    chmod +x .githooks/pre-commit
-    git config core.hooksPath .githooks
+## Verification in isolation
 
-What it runs, in under two seconds once the target directory is warm:
-`cargo fmt --check` on the staged Rust files, then
-`cargo clippy --all-targets -- --no-deps` at the lint level the repo configured.
-Format and lint only — tests, builds, and anything network-bound run in CI,
-and CI is the gate.
+Use a disposable Git repository with its own local identity and configuration.
+Stage synthetic clean and malformed Rust files, including paths with spaces.
+Exercise partial staging and verify the script rejects without changing
+the index or working-tree content. Exercise an unrelated change and tool
+failure. Test the selected manager's actual invocation and record latency.
+Use the actual formatter where available; a stub only verifies shell control
+flow. Do not create test commits or reset history in the target repository.
 
-Bypass: `git commit --no-verify`. The hook is a convenience, not a gate. Use
-the bypass for a work-in-progress commit or an emergency fix; CI reports what
-the hook skipped.
-```
+## Contributing notes
+
+Document the installation procedure, required shell/toolchain, actual
+package scope, read-only behavior, unstaged-change restriction and
+measured latency. State that local hooks are not a substitute for CI and
+that any bypass is subject to the repository's approved policy.

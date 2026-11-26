@@ -8,6 +8,11 @@ job — and the base never ships unexamined.
 
 ## The base workflow
 
+Illustrative single-crate workflow for a project whose full feature union is
+supported. Replace action refs with reviewed immutable SHAs before adoption;
+select the approved toolchain, packages and feature sets. Never expose secrets
+to untrusted pull request code.
+
 ```yaml
 name: Rust
 on:
@@ -31,6 +36,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -41,6 +48,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -52,6 +61,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-features
@@ -68,32 +79,46 @@ separate flag, `RUSTDOCFLAGS`, shown in the library scenario below.
 
 Pin the toolchain to match `rust-toolchain.toml` where the repo has one:
 give the toolchain action the same version in place of `@stable` (for example
-`dtolnay/rust-toolchain@master` with `toolchain: 1.85.0`), or let the action
-read the file by omitting the input. A job that floats on `stable` while the
+`dtolnay/rust-toolchain@master` with `toolchain: 1.85.0`), or use the installed toolchain selected by the repository pin after confirming
+its components are available. A job that floats on `stable` while the
 repo pins a version tests a compiler nobody develops with.
 
 ## The MSRV job
 
-An addition to the base, not a rewrite:
+Generate a reviewed matrix from effective package metadata and the supported
+feature/target policy. Do not use packages[0] to select a workspace MSRV.
+The following values are examples, not facts about the target project.
 
 ```yaml
   msrv:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: example-core
+            toolchain: "1.75.0"
+          - package: example-cli
+            toolchain: "1.85.0"
     steps:
       - uses: actions/checkout@v4
-      - name: Read MSRV from Cargo.toml
-        id: msrv
-        run: echo "version=$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[0].rust_version')" >> "$GITHUB_OUTPUT"
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ steps.msrv.outputs.version }}
-      - run: cargo build --all-features
+          toolchain: ${{ matrix.toolchain }}
+      - run: cargo +${{ matrix.toolchain }} build -p ${{ matrix.package }}
 ```
 
-This job builds and does not test: dev-dependencies frequently require a newer
-compiler than the crate itself, and failing MSRV on a test-only dependency
-teaches people to delete the job.
+Replace the example package names, versions and commands with approved
+values. Explicit toolchain selection avoids a repository pin overriding the
+MSRV run. Add --locked only when the committed lockfile works with the
+supported Cargo version and the project requires locked resolution. Include
+supported feature and target combinations. A library MSRV build need not
+include newer development-only dependencies; explain test coverage separately.
+Replace illustrative action refs with reviewed immutable SHAs before adopting
+the workflow.
 
 ## The Miri job
 
@@ -106,6 +131,8 @@ Gated on the unsafe policy — included only when the repo actually contains
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: miri
@@ -122,25 +149,27 @@ Gated on the unsafe policy — included only when the repo actually contains
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: thumbv7em-none-eabihf
       - run: cargo build --target thumbv7em-none-eabihf
 ```
 
-`cargo test` cannot run on a bare-metal target, so this job builds only.
+This job only builds the bare-metal target. Run supported host tests and
+separate target-runner tests when available; do not equate compilation with
+execution.
 
 ## A workspace note
 
-Put `--workspace` on every command in a workspace, so a push that changes a
-member reaches the check. `--all-features` is sometimes wrong: mutually
-exclusive feature flags make the union fail to compile even though every
-individual feature is fine. For that case the tool is `cargo hack` — run the
-check per feature (or over the feature powerset) rather than with all of them
-on. In a workspace, point the MSRV read at the root manifest; `.packages[0]`
-does not guarantee the root package. A virtual workspace has no root package,
-so `.packages[0].rust_version` can be `null`; there, read `rust-version` from
-the workspace member that declares it.
+Select --workspace for commands that should check all members, or select
+packages explicitly when their supported configurations differ. Do not
+assume root default-members include every package. A virtual workspace has
+no root package; inspect effective metadata for each member. Use explicit
+supported feature combinations rather than an unconditional all-features
+invocation. Keep host tests for no_std libraries when supported, and label
+bare-metal builds separately from executed tests.
 
 ## Feature combinations and platforms
 
@@ -150,6 +179,8 @@ the workspace member that declares it.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@cargo-hack
@@ -171,6 +202,8 @@ step per valid set. For code that differs per platform, run the test job on
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: EmbarkStudios/cargo-deny-action@v2
 ```
 
@@ -190,6 +223,8 @@ fail if anything changed:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo run -p codegen
       - run: git diff --exit-code
@@ -224,6 +259,8 @@ plus a doc job that treats doc warnings as errors:
       RUSTDOCFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo doc --no-deps
 ```

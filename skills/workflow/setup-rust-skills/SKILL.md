@@ -40,6 +40,24 @@ The unsafe policy lands as one of three: forbidden, allowed with review, or
 unrestricted. When nothing in the repo settles it, that is the one question
 worth asking.
 
+## Detect workspace members independently
+
+Use cargo metadata --no-deps --format-version 1 and inspect every relevant
+manifest, including virtual workspaces, default-members, excluded packages,
+target-specific dependencies and inherited package values. Record per-package
+edition, rust-version, targets, features and supported configurations.
+Do not assume the first package describes the workspace. Distinguish the
+development toolchain from each supported minimum compiler.
+
+Cargo lint inheritance is all-or-nothing for a member: do not combine
+[lints] workspace = true with local lint tables. If members need different
+policies, use complete explicit member lint tables for those members, or
+retain the shared policy with a deliberately approved alternative. Check
+Cargo's supported manifest syntax against the actual minimum toolchain
+before proposing a change. Do not change lint ownership silently.
+Record which packages and feature combinations the verification commands
+cover. Preserve existing agent instruction hierarchy and project constraints.
+
 ## Where lint levels actually go
 
 `clippy.toml` cannot set lint levels — it holds the configurable-lint knobs:
@@ -47,7 +65,7 @@ worth asking.
 `unwrap_used`, `expect_used`, and printing. Levels belong in `[lints.rust]` and `[lints.clippy]` in
 `Cargo.toml`, or — for a workspace — in `[workspace.lints]` at the root plus
 `lints.workspace = true` in each member. Write each file for its own purpose:
-a level in `clippy.toml` compiles fine and does nothing, which is worse than
+a lint level in `clippy.toml` is not a supported level setting, which is worse than
 an error. Confirm against the installed toolchain rather than assuming —
 `cargo clippy -- --help` settles which lints exist, and the `[lints]` block
 in the repo `Cargo.toml` settles where the levels already live. The full
