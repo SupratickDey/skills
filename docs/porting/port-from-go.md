@@ -30,27 +30,29 @@ whether cgo appears at all is settled there.
 
 | Trap | What actually differs |
 |---|---|
-| Integer overflow | Go wraps on overflow, always. Rust panics in debug and wraps in release. Any arithmetic that could overflow needs an explicit choice — `wrapping_add` to reproduce Go, or checked arithmetic plus a decision about what the new error path does |
-| Zero values | Every Go type is constructible with all fields zeroed, and code relies on it — an empty struct is a valid, meaningful value. Rust has no implicit zero value, so each such site becomes either a `Default` impl (reproducing the behaviour) or a constructor that refuses (changing it). Reproducing is parity; refusing is an improvement, and improvements wait |
+| Integer overflow | Go runtime integer arithmetic has defined overflow behavior at the operand width; constant overflow is a compile error. Rust overflow checks depend on the build policy. Any arithmetic that could overflow needs an explicit choice — `wrapping_add` to reproduce Go, or checked arithmetic plus a decision about what the new error path does |
+| Zero values | Go variables have type-specific zero values. A zero value is not necessarily operationally usable (for example a nil map cannot accept writes). Rust has no implicit zero value, so each such site becomes either a `Default` impl (reproducing the behaviour) or a constructor that refuses (changing it). Reproducing is parity; refusing is an improvement, and improvements wait |
 | `nil` is several things | A nil pointer, a nil slice (which appends fine and has length zero), a nil map (which reads fine and panics on write), and a nil interface holding a typed nil. `Option<T>` covers the first; the rest are behaviour, not absence, and mapping them all to `Option` produces subtle breakage |
-| Slice aliasing | Go slices share a backing array, so a subslice mutation is visible through the original and `append` may or may not copy depending on capacity. Rust makes this impossible, which is the point — but if the source relied on the aliasing, the port must reproduce the *observable effect* deliberately, and if it relied on it accidentally, that is a bug found by the port and recorded |
+| Slice aliasing | Go slices share a backing array, so a subslice mutation is visible through the original and `append` may or may not copy depending on capacity. Rust exclusive borrows prevent unsound simultaneous mutable aliasing — but if the source relied on the aliasing, the port must reproduce the *observable effect* deliberately, and if it relied on it accidentally, that is a bug found by the port and recorded |
 | Error strings as contract | Go code branches on `err.Error()` text and on sentinel values via `errors.Is`. A port that redesigns the error taxonomy breaks callers that were matching on strings. Map the sentinel set first, then design — `/rust-errors` |
 
 ## Goroutines, channels, and context
 
-`go f()` maps to `tokio::spawn` or a thread, decided per call site on
-whether the work is IO-bound or CPU-bound; channels map to
-`tokio::sync::mpsc` (or `crossbeam` for threads); `select` maps to
-`tokio::select!`; `sync.WaitGroup` maps to collected `JoinHandle`s.
-The differences that matter: a Rust future is lazy until polled while
-a goroutine starts immediately; `tokio::select!` cancels the losing
-branches, so branches holding state need cancellation safety; and a
-bounded Rust channel introduces backpressure an unbounded Go channel
-did not have, which is a contract change when it can block a caller.
-`context.Context` maps to structure, not a parameter: cancellation
-becomes a `CancellationToken` or a shutdown channel, deadlines become
-`tokio::time::timeout`, and request-scoped values become explicit
-parameters or a request struct.
+Preserve immediate goroutine initiation, argument evaluation, channel
+capacity and rendezvous, nil blocking, close/drain behavior, select
+evaluation and allowed scheduling outcomes. Tokio mpsc capacity one does
+not reproduce an unbuffered Go channel. Propagate parent cancellation,
+earliest deadlines and error causes; timeouts do not establish that remote
+work stopped. Verify task cleanup and cancellation under concurrency.
+
+## Value and cgo boundaries
+
+Use the source integer width and explicit wrapping for runtime overflow,
+including signed MIN divided by -1. Preserve typed-nil interfaces, byte
+strings, invalid UTF-8 iteration and observable error wrapping. For cgo,
+check the supported pinning and pointer-content rules, opaque handles,
+allocation ownership, callback lifetimes and target ABI. Verify actual
+native artifacts rather than treating a successful Rust build as cgo parity.
 
 ## Common questions
 
@@ -64,14 +66,12 @@ appears only under B (the Go-importable package is the product) or C
 honestly: cgo calls cost far more than a Go function call, the Go
 runtime and the Rust side each want their own threads, panics do not
 cross safely, and a cgo port loses `CGO_ENABLED=0` static builds.
-Under C it may be crude because it is deleted at cut-over; under B it
-is a public API. The default remains the process seam.
+Under C it is temporary but must remain safe and preserve required parity;
+under B it is a public API. The default remains the process seam.
 
-**What happens to `context.Context`?** It maps to structure, not to a
-parameter: a `CancellationToken` or shutdown channel for
-cancellation, `tokio::time::timeout` for deadlines, and explicit
-parameters or a request struct for the values threaded through
-context.
+**What happens to context.Context?** Preserve cancellation propagation,
+inherited deadlines, causes and required values using the existing runtime
+and explicit context. A fresh timeout at each layer is not equivalent.
 
 **How do you reproduce Go integer wraparound?** Per arithmetic site:
 `wrapping_add` and friends reproduce Go; checked arithmetic plus an
@@ -93,9 +93,8 @@ is not a port of the source.
 
 - Overflow behaviour was decided per arithmetic site and written down.
 - Zero-value reliance was found before it was hit in production.
-- The sentinel error set maps one-for-one to enum variants.
-- Channels were sized deliberately and the backpressure change is in
-  the contract.
+- Observable sentinel matching, custom classification and wrapping are preserved.
+- Channel rendezvous, buffering, closure and cancellation match the contract.
 - The differential run exercised more than one worker thread.
 
 ## Where it fits

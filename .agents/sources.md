@@ -116,3 +116,10 @@
 - NAPI-RS documentation: https://napi.rs/
 - wasm-bindgen guide: https://rustwasm.github.io/docs/wasm-bindgen/
 - Rust wasm32-unknown-unknown target support: https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html
+
+## Go migration semantics and cgo
+
+- Go language specification: https://go.dev/ref/spec
+- Go context and errors contracts: https://pkg.go.dev/context and https://pkg.go.dev/errors
+- cgo pointer rules and handles: https://pkg.go.dev/cmd/cgo and https://pkg.go.dev/runtime/cgo
+- Rust integer operations: https://doc.rust-lang.org/std/primitive.i64.html
