@@ -389,7 +389,7 @@ The `evals/` directory holds eval cases that run the skills against realistic
 tasks and grade the result. There is one case per porting skill (C, C++, Go,
 Java, Python, TypeScript, and `port-to-rust`) and three cases for
 `rust-code-review`, including static review when compilation is blocked, plus
-one case each for `rust-config`, `rust-debugging`, `rust-architecture`,
+a signed-division Python CLI parity case, plus one case each for `rust-config`, `rust-debugging`, `rust-architecture`,
 `rust-security`, `rust-refactoring` and `rust-implementation-planning`.
 
 Each case is a directory:

@@ -28,10 +28,10 @@ layer exists at all is settled there.
 
 | Trap | What actually differs |
 |---|---|
-| Integer width | Python `int` is arbitrary precision. `i64` silently changes behaviour at 2⁶³, and Rust panics in debug and wraps in release. Decide per field: `i64`/`i128` with a documented range, `u64` where the domain is non-negative, or `num-bigint` where the source genuinely relies on unbounded size |
-| Floor division and modulo | Python `//` floors toward negative infinity and `%` takes the sign of the divisor; Rust `/` truncates toward zero and `%` takes the sign of the dividend. `-7 // 2` is `-4` in Python and `-7 / 2` is `-3` in Rust. Use `div_euclid`/`rem_euclid` when the source relied on the Python rule |
-| `str` versus `bytes` | Python `str` indexes and slices by code point; Rust `String` is UTF-8 and indexes by byte, and slicing on a non-boundary panics. `bytes` is `Vec<u8>`/`&[u8]`. Every `s[i]` in the source is a decision, not a translation — most become `.chars().nth(i)` only if the source really meant code points |
-| Truthiness | `if x:` is false for `0`, `""`, `[]`, `{}`, `None`, and any object with a falsy `__len__`. Rust has no such coercion, so each site becomes an explicit predicate — and getting one wrong changes a branch nobody tests |
+| Integer width | Python `int` is arbitrary precision. Fixed-width integers require explicit range and overflow semantics; Rust overflow behavior depends on the build policy. Decide per field: `i64`/`i128` with a documented range, `u64` where the domain is non-negative, or `num-bigint` where the source genuinely relies on unbounded size |
+| Floor division and modulo | Python `//` floors toward negative infinity and `%` takes the sign of the divisor; Rust `/` truncates toward zero and `%` takes the sign of the dividend. `-7 // 2` is `-4` in Python and `-7 / 2` is `-3` in Rust. For signed integers, use checked truncating division and remainder, then adjust quotient and remainder when the nonzero remainder and divisor have opposite signs. Euclidean remainder is nonnegative, so it is not equivalent for negative divisors. |
+| `str` versus `bytes` | Python `str` indexes and slices by code point; Rust strings are UTF-8, do not support integer indexing, and byte-range slicing requires valid character boundaries. Python can also contain lone surrogates that Rust str cannot represent. `bytes` is `Vec<u8>`/`&[u8]`. Every `s[i]` in the source is a decision, not a translation — most become `.chars().nth(i)` only if the source really meant code points |
+| Truthiness | `if x:` is false for `0`, `""`, `[]`, `{}`, `None`, and objects whose `__bool__` returns false or whose fallback `__len__` returns zero. Rust has no such coercion, so each site becomes an explicit predicate — and getting one wrong changes a branch nobody tests |
 | Exceptions crossing layers | A Python exception propagates through every frame that did not catch it, including frames that were never written with failure in mind. Rust makes every propagation point visible with `?`, which surfaces error paths the source never had a name for. What the error type should be is `/rust-errors` |
 
 ## Bindings, or no bindings
@@ -45,8 +45,7 @@ The end state decides whether PyO3 appears at all:
 | C. Scaffold | The port ends standalone, but Python calls the Rust module while the migration is under way | Temporary, and deleted at cut-over |
 
 Under B and C the route is PyO3 plus maturin: a Rust extension module
-that the existing Python imports with no call-site change beyond the
-import, built with `maturin develop` into the active virtualenv. Under B
+that the existing Python imports through the existing compatible public package interface, built with `maturin develop` into the active virtualenv. Under B
 the binding surface is a permanent public API — signatures, exception
 types, wheels per platform, semver; under C it is scaffold, deleted at
 cut-over. Under A there is no binding layer at any point and the seam is
@@ -62,8 +61,8 @@ port. A standalone Rust CLI is end state A and never imports into Python;
 its seam is the process boundary.
 
 **How do you tell scaffold bindings from a product package?** Whether the
-binding surface outlives the port. Scaffold (C) may be crude because it is
-deleted at cut-over; product (B) is a public API with semver,
+binding surface outlives the port. Scaffold (C) is temporary but must still be safe and preserve required
+behavior until cut-over; product (B) is a public API with semver,
 exception-type mapping, and wheels per platform.
 
 **Port the whole app, or one module?** One module at a time, and the one
@@ -72,9 +71,8 @@ the running app. The usual shape is a small fraction of the code taking
 most of the time; under B and C the PyO3 seam makes that path real, and
 under A the boundary is whatever process seam the system already has.
 
-**What about `pickle`?** Nothing maps to it. A pickle boundary cannot be
-ported, only replaced with `serde`, and that replacement is a contract
-change to be recorded in the parity contract, not a translation.
+**What about `pickle`?** Serde does not decode pickle. Preserve the trusted Python adapter or use an
+approved stored-format migration. Never deserialize untrusted pickle.
 
 **Is `pytest` coverage enough evidence?** No. The suite is
 characterization input — the cases are inputs, the assertions are recorded
@@ -85,8 +83,18 @@ differential run, reported with its denominator.
 **What happens to arbitrary-precision integers?** A per-field decision:
 `i64` or `i128` with a documented range, `u64` where the domain is
 non-negative, `num-bigint` where the source genuinely relies on unbounded
-size. An `i64` silently changes behaviour at 2⁶³, and a money or counter
-port on the wrong width fails late, far from the port.
+size. An i64 cannot represent Python integers outside its range. Preserve checked
+range and overflow behavior, including intermediate results.
+
+## Interpreter and distribution compatibility
+
+Use the project's pinned PyO3 API generation. Detach independent Rust work
+without accessing Python-bound objects; review concurrency explicitly for
+free-threaded interpreters. Lists usually require conversion, while buffers
+and arrays need layout, lifetime and mutability checks before borrowing.
+Build and install fresh wheels on required platforms and distinguish local
+development imports from distribution evidence. Measure end-to-end host
+performance rather than assuming native code is faster.
 
 ## It's working if
 
