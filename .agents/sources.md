@@ -77,3 +77,10 @@
 - Rustdoc documentation tests: https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html
 - Miri project documentation: https://github.com/rust-lang/miri
 - tracing instrumentation and OpenTelemetry metrics concepts: https://docs.rs/tracing/latest/tracing/ and https://opentelemetry.io/docs/concepts/signals/metrics/
+
+## Workspace configuration, CI and commit-hook safety
+
+- Cargo workspaces and lint inheritance: https://doc.rust-lang.org/cargo/reference/workspaces.html and https://doc.rust-lang.org/cargo/reference/manifest.html#the-lints-section
+- Cargo metadata and feature selection: https://doc.rust-lang.org/cargo/commands/cargo-metadata.html and https://doc.rust-lang.org/cargo/reference/features.html
+- GitHub Actions secure use: https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions
+- Git staged changes and hooks: https://git-scm.com/docs/git-diff and https://git-scm.com/docs/githooks

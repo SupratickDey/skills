@@ -81,6 +81,14 @@ An existing workflow is never overwritten: the skill reads it and reports the
 difference as a diff for approval. The full files and the variants are in
 `WORKFLOWS.md`.
 
+## Supported matrices and trust
+
+Select packages, toolchains, targets and feature sets from effective project
+metadata. Use explicit minimum-toolchain invocations, preserve the lockfile
+policy and distinguish host tests, cross-builds and executed target tests.
+Review immutable action refs, read-only permissions, credential persistence
+and untrusted PR boundaries before approval. Report unexecuted jobs.
+
 ## Common questions
 
 **Why no `-D warnings` on the clippy job?** The level comes from the repo
@@ -97,8 +105,8 @@ produce, and changes nothing unless the user approves.
 
 **Does `--all-features` always work?** No. Mutually exclusive feature flags
 make the union fail to compile even though every individual feature is fine;
-the fix is `cargo hack`, running the check per feature. In a workspace, every
-command takes `--workspace`, and the MSRV read points at the root manifest.
+the fix is `cargo hack`, running the check per feature. Select workspace members explicitly when their feature sets or MSRVs differ;
+read the effective minimum version for each supported package.
 
 **Can the model invoke the skill on its own?** No. Both harness flags are
 set — `disable-model-invocation` in the frontmatter and

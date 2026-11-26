@@ -1,7 +1,6 @@
 ## What it does
 
-Sets up a fast pre-commit hook for a Rust repo — format and lint the staged
-changes only, in about two seconds. The defining constraint: a hook is a
+Sets up a fast pre-commit hook for a Rust repo — perform fast, read-only checks triggered by relevant staged changes. The defining constraint: a hook is a
 convenience, never a gate. CI is the gate — it runs on every push whether or
 not a local hook ever fired — and a hook that tries to be the gate gets slow,
 and a slow hook gets bypassed with `--no-verify` within a week.
@@ -39,57 +38,38 @@ setting — and matches it rather than introducing a second mechanism.
 
 The complete files for all three, ready to paste, are in `HOOKS.md`.
 
-## What goes in the hook, and what never does
+## What goes in the hook
 
-In: `cargo fmt` on the staged Rust files, and `cargo clippy` at the
-configured level. Out: `cargo test` (too slow, and a broken test is what CI
-exists to report), `cargo build --release`, and anything network-bound such
-as `cargo audit` — those belong on a schedule, and `/rust-supply-chain`
-covers them.
+Prefer report-only formatting and optional package-level clippy at the
+configured lint level. Cargo fmt and clippy do not check an arbitrary list
+of staged files. Use the staged path inventory only to decide whether a
+check is necessary. A working-tree check must be labeled as such; for
+exact index-only verification use an isolated snapshot.
 
-Staged-only is the difference between two seconds and thirty. The file list
-comes from what the user actually staged; the warning worth stating plainly
-is that `cargo clippy` cannot be scoped to files. It works per crate, so a
-workspace hook lints only the crates containing staged files — and a repo
-where even that is still slow drops clippy from the hook and keeps `fmt`. The
-hook that survives is the one the repo keeps trusting.
-
-Formatting is a design choice, stated in the contributing notes:
-`cargo fmt --check` fails and makes the user format, or `cargo fmt` rewrites
-the files and re-stages them — and a rewrite must print every file it
-touched, never change what the user is about to commit silently. The bypass
-is documented in the same breath as the hook: `git commit --no-verify`
-exists, it is legitimate, and a hook presented as unbypassable is a hook
-people route around resentfully.
+Preserve the user's hook manager, Git configuration, index and working
+tree. Reject partial staging when using the conservative working-tree
+template. Do not automatically rewrite or restage files. Test the hook in
+a disposable repository rather than making probe commits and resets in
+the user's project.
 
 ## Common questions
 
-**Why no tests in the hook?** A hook that takes longer than about two
-seconds will be bypassed. Tests are what CI exists to report; the hook
-formats and lints and stops.
+**Is a two-second hook guaranteed?** No. Measure actual latency and move
+slow or network-bound checks to CI.
 
-**Why no `-D warnings` flag?** A hook stricter than CI fails commits CI would
-pass — the single most effective way to get a hook uninstalled. The fallback
-flag belongs only in a repo with no lint configuration at all.
+**Can a hook lint individual Rust files with cargo clippy?** No. Select
+the appropriate compilation units and documented feature settings.
 
-**What if the measured time is over two seconds?** The verification step
-times a clean commit and reports it. Over budget, the hook is cut down —
-clippy goes first — rather than shipped.
-
-**Can the model invoke the skill on its own?** No. Both harness flags are
-set, as in `/setup-rust-ci`.
+**Can the model run this setup automatically?** No. Both harness invocation
+flags require explicit user invocation.
 
 ## It's working if
 
-- A deliberately broken commit is rejected, naming the file.
-- A clean commit passes, and the measured time is reported — under two
-  seconds.
-- The contributing notes say what the hook runs, how to install it, and that
-  `--no-verify` is available.
-- The clippy in the hook runs at the level the repo configured, no flag
-  added.
-- CI still catches what the hook skips — the hook is a convenience, and CI
-  is the gate.
+- The hook detects relevant changes without unsafe filename splitting.
+- Clean and malformed inputs produce the expected result in isolation.
+- Partially staged content and user history remain untouched.
+- Actual formatter checks and shell-only checks are reported separately.
+- Existing hooks, configuration and CI requirements are preserved.
 
 ## Where it fits
 

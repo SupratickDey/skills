@@ -92,10 +92,10 @@ assertions red.
 
 ## The full worked configuration
 
-The default set from `SKILL.md`, as a workspace, with the mechanics that keep
-it behaving. `missing_docs` is deliberately absent from `[workspace.lints]` —
-a binary member has no public surface to document, so it goes in the library
-members instead, together with every other [lib] row.
+The shared workspace example omits library-specific rows. A member inheriting
+workspace lints cannot also specify member lint levels. For a distinct library
+policy, use a complete explicit [lints.rust] and [lints.clippy] policy in that
+member instead of inheritance, with approval. Preserve existing member policy.
 
 ```toml
 # Cargo.toml at the workspace root
@@ -115,8 +115,8 @@ unwrap_used = "deny"
 expect_used = "deny"
 map_err_ignore = "deny"
 must_use_candidate = "allow"
-# ...the remaining rows from the single-crate block, minus the [lib] rows,
-# which go in the library members' own [lints.clippy] tables.
+# ...remaining shared rows from the single-crate block.
+# Do not combine inherited and explicit member lint tables.
 ```
 
 ```toml
@@ -130,7 +130,7 @@ concretely: the group entry registers first, so the member re-allow sticks. A
 group entry at the default priority wins against a later `allow` on one of
 its members, and the exception is silently discarded.
 
-The MSRV triple has to agree — `rust-version` in `Cargo.toml`, `msrv` in
+For each supported package, the MSRV triple has to agree — `rust-version` in `Cargo.toml`, `msrv` in
 `clippy.toml`, and the compiler the oldest CI job builds on. When it does
 not, clippy suggests an API newer than the declared MSRV, and the oldest
 job goes red on a change nobody made.
@@ -144,8 +144,8 @@ described in `WORKSPACE.md`.
 
 ## `clippy.toml`
 
-Knobs only — this file cannot set lint levels, and a level written here is
-silently ignored:
+Knobs only: this file cannot set lint levels. Unsupported keys may produce
+configuration errors or warnings; use Cargo lint tables for levels:
 
 ```toml
 msrv = "1.85"
@@ -188,7 +188,9 @@ max_width = 100
 # wrap_comments = true
 ```
 
-`edition` matches the detected edition. Keep the file small: every key is a
+For a uniform-edition project, edition matches the detected edition. For mixed
+editions, avoid imposing a root edition that overrides package-specific formatting;
+verify cargo fmt with the supported workspace toolchain. Keep the file small: every key is a
 house style the whole repo now has to follow, and a key with no reason behind
 it is a future argument; the same test applies to every rule in a style
 configuration, and a rule that earns nothing is dropped.
