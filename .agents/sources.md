@@ -37,3 +37,12 @@
 - [Tokio spawn_blocking](https://docs.rs/tokio/latest/tokio/task/fn.spawn_blocking.html): bounded concurrency and non-abortable started work.
 - [Tokio Mutex](https://docs.rs/tokio/latest/tokio/sync/struct.Mutex.html): lock choice, FIFO and cancelled waits.
 - [Rust atomic Ordering](https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html): ordering contracts.
+
+## Dependency and supply-chain risk
+
+- [Cargo resolver](https://doc.rust-lang.org/cargo/reference/resolver.html): version unification, feature resolution, MSRV and yanked releases.
+- [Cargo build](https://doc.rust-lang.org/cargo/commands/cargo-build.html): locked builds and target/feature selection.
+- [Cargo build scripts](https://doc.rust-lang.org/cargo/reference/build-scripts.html): build-host execution.
+- [RustSec](https://rustsec.org/): advisory database scope.
+- [cargo-deny checks](https://embarkstudios.github.io/cargo-deny/checks/index.html): advisories, licenses, bans and sources, with default configuration.
+- [cargo-deny common options](https://embarkstudios.github.io/cargo-deny/cli/common.html): no-fetch and lockfile behaviour.
