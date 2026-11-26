@@ -1,8 +1,7 @@
 # Modelling choices
 
 The depth for `SKILL.md`: how to state a choice in a parameter, which standard
-type to reach for, what a newtype can do beyond carrying an invariant, the three
-tiers of validation, and what to do instead of runtime reflection.
+type to reach for, what a newtype can do beyond carrying an invariant, invariant enforcement, and what to do instead of runtime reflection.
 
 ## Absence, choices, and flags
 
@@ -42,7 +41,8 @@ fn main() {
 }
 ```
 
-An enum can grow variants later without changing any signature; a `bool` cannot.
+An enum can express additional choices without changing the parameter type,
+but adding a variant can break exhaustive downstream matches.
 When a parameter has to stay a `bool`, a short comment at the call site naming
 it is the fallback, not the goal. When an enum is fixed in a wire format or a C
 interface, give its variants explicit discriminants so the numbers are a decision
@@ -112,24 +112,21 @@ impl Month {
 const LAUNCH: Month = Month::new(7);
 ```
 
-## Three tiers of validation
+## Invariant enforcement
 
-When a value must be valid, prefer the strongest tier that fits, and fall down a
-tier only with a reason:
+Prefer a type that represents only valid states, backed by checked runtime
+construction wherever input cannot be proven statically. Keep runtime validation
+for facts that can change after construction. Check all safe constructors,
+conversions, deserializers and mutations, including arithmetic and mutable
+accessors. Debug assertions are supplementary diagnostics, not validation
+required in optimized builds.
 
-1. **Static.** A type that cannot hold a bad value: take `NonEmptyName`, not `String`. This
-   is the parse-do-not-validate rule in `SKILL.md`.
-2. **Dynamic.** The check runs as the value is processed and returns an error or
-   panics on violation. Where a check is too expensive for release builds,
-   `debug_assert!` keeps it in dev and test builds.
-3. **Opt-out.** A sibling such as `parse_unchecked`, or a `raw` module, that
-   skips the check for a caller who has already proved the value. Mark the
-   sibling `unsafe` if skipping the check can cause undefined behaviour; if the
-   worst outcome is a wrong answer, it stays a safe function with the
-   consequence documented.
-
-Each tier trades safety for effort at the call site, which is why they are taken
-in this order.
+An unchecked construction path must not let safe callers create values that
+violate the promised invariant. If an unchecked path has a memory-safety
+precondition, use an unsafe interface with an explicit safety contract and
+justify the need. For non-safety-related preconditions, prefer a checked
+constructor or a separately named raw representation rather than a trusted
+type that can contain invalid values.
 
 ## Invariants written as comments
 

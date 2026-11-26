@@ -66,8 +66,9 @@ enum with a `Result` when states are many, dynamic, or stored together.
   otherwise the plain integer and an error (same test for `Saturating`), and the overflow operator named
   explicitly — checked, saturating, or wrapping — rather than plain `+`.
 - **`TryFrom` over `as`** at the boundary, once.
-- **Floats compare badly.** No `==` without an epsilon appropriate to the
-  magnitude, and sorting goes through `total_cmp`.
+- **Float comparisons.** Exact equality is valid for an exact contract;
+  approximate comparisons require domain-defined tolerances and special-value
+  handling. Use `total_cmp` when its total ordering is intended.
 - The worked `Cents` versus `Meters` example, with the range-checking
   constructor, lives in `NUMERICS.md`; the modelling choices above live in `MODELLING.md`.
 
@@ -101,7 +102,7 @@ safety.
 - No typestate machine with more than a handful of fixed states was introduced
   for a struct built once.
 - No `as` cast between integer types outside a place where truncation is the
-  documented intent; no float `==`.
+  documented intent; floating-point comparison semantics are deliberate.
 - `cargo test` passes at the lint level configured in the repo.
 
 ## Where it fits
