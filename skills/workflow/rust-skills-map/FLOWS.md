@@ -25,8 +25,10 @@ pointed at — and the question is what to do first and in what order.
    locally.
 2. The craft skills, as the code demands them — `/type-driven-design` while
    the model is still soft, `/rust-errors` at the first fallible boundary,
-   `/rust-api-design` before the first published version, and the rest by the
-   questions they raise. **Alongside, not after:** `/rust-testing` writes the
+   `/rust-api-design` before the first published version, `/rust-config` when
+   loading runtime settings, and the rest by the questions they raise.
+   Use `/rust-debugging` when existing behavior fails; it owns defect isolation
+   and focused correction, not independent review. **Alongside, not after:** `/rust-testing` writes the
    test for each behaviour change as it lands, so the suite never trails the
    code, and `/rust-docs` writes the doc comment for each public item as its
    signature settles, so the contract never trails the code either.

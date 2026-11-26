@@ -49,6 +49,8 @@ every handoff in this set is a directly typeable `/skill-name`.
 | What does this Java construct become in Rust? | `/port-from-java` | `/type-driven-design` — the enum rules, not the hierarchy mapping |
 | What does this C++ construct become in Rust? | `/port-from-cpp` | `/ownership-not-clone` — the sharing rules, not the smart-pointer mapping |
 | What does this C construct become in Rust? | `/port-from-c` | `/port-from-cpp` — RAII, templates, and the STL are the other skill |
+| How should application runtime settings be loaded and validated? | `/rust-config` | `/setup-rust-skills` - Cargo tooling and lint posture, not application settings |
+| Why does existing code fail, and how do I fix the cause? | `/rust-debugging` | `/rust-code-review` - read-only findings rather than authorized defect correction |
 | Is this diff ready to merge? | `/rust-code-review` | every craft skill — review routes to them, it does not restate them |
 | How should this repo be configured? | `/setup-rust-skills` | `/setup-rust-ci`, `/setup-rust-pre-commit` — the workflow and the hook; this one writes the lint configuration and the recorded posture |
 | The repo needs CI that runs what the skills run locally | `/setup-rust-ci` | `/setup-rust-pre-commit` — that one is the commit-time convenience, this one the push-time gate |
@@ -65,7 +67,8 @@ signal that moves between them — is in `FLOWS.md`.
 
 - **Starting fresh in a Rust repo:** `/setup-rust-skills` to configure and
   record posture, then the craft skills as the code demands them,
-  `/rust-testing` and `/rust-docs` alongside, and `/rust-code-review`
+  `/rust-config` for runtime settings, `/rust-testing` and `/rust-docs` alongside,
+  `/rust-debugging` for defects, and `/rust-code-review`
   before merge.
 - **Reviewing someone else's code:** `/rust-code-review` first — it dispatches
   to the craft skills itself; a craft skill directly only when the review

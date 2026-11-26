@@ -37,3 +37,10 @@
 - [Tokio spawn_blocking](https://docs.rs/tokio/latest/tokio/task/fn.spawn_blocking.html): bounded concurrency and non-abortable started work.
 - [Tokio Mutex](https://docs.rs/tokio/latest/tokio/sync/struct.Mutex.html): lock choice, FIFO and cancelled waits.
 - [Rust atomic Ordering](https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html): ordering contracts.
+
+## Runtime configuration and focused debugging
+
+- [std::env::var](https://doc.rust-lang.org/std/env/fn.var.html) and [Rust 2024 newly unsafe functions](https://doc.rust-lang.org/edition-guide/rust-2024/newly-unsafe-functions.html): missing versus invalid Unicode and process environment mutation.
+- [Serde container attributes](https://serde.rs/container-attrs.html): validated conversion and unknown-field policies.
+- [Rust API Guidelines: dependability](https://rust-lang.github.io/api-guidelines/dependability.html): input validation and predictable failure.
+- [OWASP secrets management](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html): secret lifecycle, access and redaction.
