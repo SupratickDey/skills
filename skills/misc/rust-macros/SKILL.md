@@ -64,8 +64,10 @@ A macro expands at the call site, where the names it mentions may mean
 something else. `$crate` resolves to the defining crate no matter where the
 expansion lands, and a macro that names any item from its own crate without
 it works only until someone invokes it from a module that shadows the path.
-Local variables a `macro_rules!` introduces are hygienic and cannot collide;
-paths and types are not.
+Declarative macros have mixed-site hygiene; local variable and label resolution
+is different from most item paths. Use $crate for defining-crate items and
+remember it does not bypass visibility. Procedural macro output is generally
+unhygienic; choose paths and spans deliberately.
 
 ## Fragment specifiers say what you accept
 
@@ -128,8 +130,9 @@ scopes, visibility, and `ty` fragments — in `ITEM-MACROS.md`.
 
 Anything the expansion must reference goes in a `#[doc(hidden)] pub mod
 _private`, referenced through `$crate::_private::…`, so it is reachable by
-the expansion and marked as no part of the public API. Without it, the
-helpers become public surface you cannot change.
+the expansion and hidden from ordinary documentation. It remains externally reachable and
+must stay compatible with supported exported expansions. Hidden documentation
+does not make a public item private.
 
 ```rust,ignore
 #[doc(hidden)]
@@ -161,15 +164,17 @@ tests (`insta`) of the generated token stream live with that logic, next to
 A user-facing macro usually ships as three crates: the public `foo` crate that
 re-exports the macros, a thin `foo_proc` crate that holds only the
 proc-macro entry points, and `foo_proc_impl` with the logic and its tests.
-Users depend on `foo` alone. Because generated code names the crate by its
-real name, do not promise support for users who rename the dependency in
-`Cargo.toml` or re-import it under another name. The crates are versioned in
+Users depend on `foo` alone. Procedural expansions cannot use declarative $crate resolution. Support
+renamed dependencies through an approved crate-path option or an established
+crate-name resolution mechanism where required; otherwise document the
+limitation. Test the facade and renamed dependency from a consumer crate. The crates are versioned in
 lockstep: pin each companion with `=x.y.z` and publish them together, so
 a mismatched pair never resolves.
 
-When the expansion needs an item from a third-party crate, re-export it
-inside `_private` (`pub use ::indexmap::IndexMap;`) and reach it through
-`$crate::_private`; the caller then needs no dependency on that crate.
+When an exported declarative macro needs a dependency item, a hidden public
+re-export reached through $crate can avoid requiring a direct caller dependency.
+Procedural output needs an actual resolved facade path. Keep helpers compatible
+with supported expansions and avoid unnecessary dependency exposure.
 
 ## Errors are spanned, never panics
 
@@ -194,6 +199,17 @@ Whether the generated API should exist at all is `/rust-api-design`. What a
 generated error type looks like is `/rust-errors`. Derives that already exist
 and should be used instead of a hand-written impl are `/idiomatic-rust`.
 Serde attribute behaviour is `/rust-serde`.
+
+## Consumer-side diagnostic tests
+
+Test expansions in a separate consumer crate, including renamed imports where
+supported, local shadowing, generic types, edition-specific fragment behavior,
+visibility and feature-gated items. Check arguments with side effects execute
+only as documented and that cfg attributes also guard generated companion items.
+Use the existing compile-fail harness to verify useful error messages and
+locations. Review diagnostic snapshot changes rather than blindly accepting
+them. Token snapshots alone do not establish successful type checking or
+hygiene. Avoid adding a testing dependency without approval.
 
 ## Verification
 

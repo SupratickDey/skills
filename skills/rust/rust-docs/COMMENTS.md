@@ -17,9 +17,9 @@ is worse than none, since it looks like documentation and hides the gap:
 pub fn len(&self) -> usize { /* ... */ }
 ```
 
-Where the honest content is nothing, either leave the item undocumented, or,
-in a crate that warns on `missing_docs`, put a local `#[allow(missing_docs)]`
-on it. Do not write filler to quiet the lint. The same goes for enum variants
+Where the signature already carries the useful information, follow the existing
+project documentation policy. Do not introduce a missing_docs allowance just
+to quiet the lint; obtain approval for a genuine exception. Avoid filler. The same goes for enum variants
 whose names already say everything.
 
 ## Two comment forms, two audiences

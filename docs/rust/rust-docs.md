@@ -43,7 +43,8 @@ hidden on `#` lines instead of dropped into a fragment. `ignore` is honest
 only when the example is a deliberate fragment; `no_run` when it must compile
 but must not execute; `compile_fail` when not compiling is the point. Heavy
 setup goes in a hidden helper function taking the prepared values as
-parameters, so the example compiles without running its assertions.
+parameters, so the example compiles without running its assertions. Report
+this as compile-only evidence, not an executed behavior test.
 `#[doc(inline)]` is for crate-internal re-exports, never std or third-party
 types, and `#[doc(hidden)]` fits impls no user triggers by name.
 
@@ -53,7 +54,8 @@ Magic values get a named `const` whose doc comment gives the reason, the effect
 of changing it, and any outside system the value ties to. Plain `//` carries
 implementation notes, TODOs, and disabled code, may sit under a `///` on the
 same item, and a doc comment never restates the item name or explains language
-basics: omit it, or allow `missing_docs` locally, rather than write filler.
+basics: follow the existing documentation policy without adding lint suppressions to
+make checks pass.
 Enum variant docs are often omittable, and hand-written docs beat
 macro-generated ones. A published crate fills in `authors`, `description`,
 `license`, `repository`, `keywords`, and `categories`, adds `documentation`
@@ -66,8 +68,7 @@ are in `COMMENTS.md` and `PACKAGING.md`.
 
 **Is `missing_docs` worth turning on?** For a library, usually yes — it turns
 an undocumented public item from a discovery into a warning. Propose it where
-the crate has not opted in, do not impose it, and never add it to a binary
-crate. Do not quiet it with rushed docs that restate the name.
+the crate has not opted in, do not impose it, and assess the documentation needs of a binary separately. Do not quiet it with rushed docs that restate the name.
 
 **When is `ignore` on a doctest honest?** When the example is a deliberate
 fragment — it names a type the surrounding prose defines, or shows a signature
@@ -84,14 +85,22 @@ a design record, an ADR, a note beside the code — anywhere that never renders
 into the docs a user reads. A reader looking up a function signature has no
 use for the writing process.
 
+## Verification scope
+
+Test actual public API examples, supported feature configurations and
+documented failure behavior. A compile-fail example must fail for the expected
+reason. Avoid browser launches in headless checks and keep the configured
+rustdoc lint policy unchanged.
+
 ## It's working if
 
-- `cargo doc --no-deps` is warning-free, and the rendered pages (`--open`) read well.
+- `cargo doc --no-deps` is warning-free, and the rendered pages read well when inspection is available.
 - Every public function returning `Result` has an `# Errors` section naming
   the conditions that produce the failure.
 - Every `pub unsafe fn` has a `# Safety` section stating the invariant the
   caller upholds, and every `unsafe trait` states what implementers must uphold.
-- `cargo test --doc` runs a non-zero number of tests.
+- Applicable doctests execute against the real API; compile-only and skipped
+  examples are reported separately.
 - No design journal, changelog narration, or compliance table appears in the
   rendered output.
 
