@@ -32,7 +32,10 @@ measurement is `[profile.bench]` with `debug = 1`: without it, the profiler
 shows addresses instead of function names. First settle whether speed matters for
 the crate, record hot spots in comments beside the code, and pass
 benchmark values through `std::hint::black_box`. Where an iterator chain and a
-loop compete, benchmark both.
+loop compete, preserve ordering and length handling, then benchmark both. Repeat
+release-mode runs under comparable conditions; use an unchanged A/A comparison
+when noise matters. Report variability, sample counts, relevant resource metrics
+and whole-application performance, including cross-language call overhead.
 
 ## Throughput and indirection
 
@@ -73,6 +76,8 @@ without one proves nothing about the change.
 ## It's working if
 
 - Every optimisation in the diff traces to a measurement that named it.
+- The end-to-end gain meets the agreed objective and exceeds measurement noise;
+  behavioural tests and resource budgets still pass.
 - `[profile.bench]` sets `debug = 1`, so the profiler shows names.
 - No `format!` in the hot path the profile named.
 - No deployment-shaped flag committed into a library: no `target-cpu`, no PGO

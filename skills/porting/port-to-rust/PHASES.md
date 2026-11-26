@@ -36,23 +36,25 @@ running the source, with expected values recorded from what the
 source actually does, bugs included. The harness shapes are
 `/rust-testing`.
 
-## Phase 3 — port leaf-first
+## Phase 3: port incrementally
 
 **Produces.** One Rust module behind the seam, with the source
 implementation still present and still callable.
 
 **Done when.** The module ported is the lowest-dependency one
-remaining. A leaf validates in isolation; porting top-down means
+remaining, or a measured cohesive hot operation for selective acceleration (a variant of B).
+A leaf validates in isolation; porting top-down means
 every module below it is a stub the harness cannot exercise, so the
 "green" says nothing about the real dependency. The corollary for
 scope: one module per session, and the session ends with both
 implementations green.
 
-## Phase 4 — run both
+## Phase 4: compare both
 
-**Produces.** A period in which every input reaching the seam goes
-through both implementations and the outputs are compared — in CI or
-in production shadow traffic, depending on the seam.
+**Produces.** Representative recorded, generated and held-out inputs run through both
+implementations in isolation, with output and error comparisons. Production
+shadow traffic is optional and must be authorized, sanitized and free of
+duplicate live writes.
 
 **Done when.** Every difference found is triaged to one of the three
 outcomes in `PARITY-CONTRACT.md`, and the difference report is being
@@ -62,7 +64,7 @@ no one reading the report. Skip it and the cut-over rests on tests
 that never compared the two implementations — every difference a
 caller can see becomes a mystery on the day the source is deleted.
 
-## Phase 5 — cut over and delete
+## Phase 5: cut over
 
 **Produces.** One implementation. Under end state C this includes
 deleting the scaffold bindings — part of this phase, not a follow-up
@@ -71,10 +73,14 @@ the phase ends with it documented, versioned, and packaged for every
 platform the old package supported; a B port that ships artifacts
 for one platform when the source shipped four has not cut over.
 
-**Done when.** Traffic goes to the Rust implementation only, and the
-source implementation is gone.
+**Done when.** For full replacement of the selected unit, traffic goes to Rust only and the
+superseded source implementation is gone. For selective acceleration under B,
+only the selected hot unit is replaced, and the host remains. Require end-to-end performance evidence,
+platform packaging and approved rollout/rollback criteria before enabling selective acceleration.
+Retain a live fallback only with an explicit owner, maintenance policy, and
+verification of both implementations; otherwise use a versioned rollback artifact.
 
-The deletion is the phase. A source implementation kept "just in
+For full replacement, deletion is the phase. A source implementation kept "just in
 case" is unmaintained within a month and diverges silently, and the
 next person cannot tell which one is authoritative. If a rollback
 path is genuinely required, it is a tagged commit of the old
