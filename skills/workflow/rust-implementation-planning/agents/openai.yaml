@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust Implementation Planning"
+  short_description: "Specification-led task sequencing, acceptance criteria and verification plans"
