@@ -19,17 +19,17 @@ decision.
 | `friend` | Module privacy | Rust privacy is module-scoped, which is usually a better fit |
 | Template function | Generic with bounds | The real bound, which the template left implicit |
 | Template class | Generic struct | Same |
-| Template specialization | Distinct trait impls | Whether the specialization changed behaviour or just performance |
+| Template specialization | nonoverlapping impls or explicit dispatch | Preserve behavior under stable coherence rules; arbitrary overlapping specialization is unavailable |
 | CRTP | Trait, or generic | Usually a plain trait |
 | SFINAE / concepts | Trait bounds | The bound the source actually required |
 | Template metaprogramming | Macro, build script, or plain code | Whether the compile-time computation is still needed |
-| `unique_ptr<T>` | `Box<T>` | Whether the pointer was really unique |
-| `shared_ptr<T>` | `Arc<T>` / `Rc<T>` | Whether sharing was real or habitual — `/ownership-not-clone` |
+| `unique_ptr<T>` | native owning handle or Rust Box | Preserve nullable state, custom deleter, allocator and ownership transfer; Box is not a foreign allocator adapter |
+| `shared_ptr<T>` | native shared handle or Rust Arc/Rc | Preserve aliasing constructors, control-block identity, deleter and synchronization; reference counting alone does not make T thread-safe |
 | `weak_ptr<T>` | `Weak<T>` | Whether the cycle it broke should exist at all |
-| Raw pointer (owning) | `Box<T>` | Ownership, which the source did not state |
-| Raw pointer (borrowing) | `&T` / `&mut T` | Lifetime, which the source did not state |
+| Raw pointer (owning) | explicit owning wrapper | Prove allocator and destruction contract before conversion; never assume Box::from_raw is compatible |
+| Raw pointer (borrowing) | verified borrow or opaque raw handle | Prove validity, lifetime, alignment, initialization and aliasing before creating references |
 | Reference `T&` | `&T` / `&mut T` | Whether it could dangle |
-| `const T&` | `&T` | Nothing hidden |
+| `const T&` | verified shared borrow or native handle | const does not preclude mutable members or mutation through another alias |
 | `std::vector` | `Vec<T>` | Reserve behaviour if it was load-bearing for pointers |
 | `std::array` | `[T; N]` | Nothing hidden |
 | `std::string` | `String` / `&str` | `std::string` is bytes with no encoding guarantee; non-UTF-8 content needs `Vec<u8>` or a lossy decision |
@@ -38,14 +38,14 @@ decision.
 | `std::unordered_map` | `HashMap` | Iteration order, and hasher differences if hashes leaked into output |
 | `std::set` / `unordered_set` | `BTreeSet` / `HashSet` | Same |
 | `std::optional` | `Option<T>` | The clean row |
-| `std::variant` | `enum` | The clean row, and a large win |
+| `std::variant` | enum with necessary state | Preserve valueless_by_exception and visitation behavior where observable |
 | `std::any` | An enum | The set of types that actually reach the site |
-| `std::function` | `Box<dyn Fn>` / generic `F` | Whether the indirection was needed |
+| `std::function` | appropriate Fn/FnMut/FnOnce or native wrapper | Preserve empty state, copyability, capture lifetime, invocation and exception behavior |
 | Lambda | Closure | Capture by reference versus by value, which Rust makes explicit |
 | Iterator pair | `Iterator` / slice | Whether the range was half-open and validated |
 | `std::algorithm` | Iterator adaptors | Nothing hidden; shape is `/idiomatic-rust` |
 | Exception / `throw` | `Result` + `?` | The error taxonomy — `/rust-errors` |
-| `noexcept` | Infallible signature | Whether it was true |
+| `noexcept` | explicit failure contract | Non-throwing functions may return errors; preserve termination behavior and never equate noexcept with success |
 | RTTI / `dynamic_cast` | Enum + `match` | The downcast set, which becomes explicit |
 | `std::thread` | `std::thread` | Nothing hidden |
 | `std::mutex` | `Mutex<T>` | Rust guards data, so fields move inside the mutex |
@@ -63,3 +63,14 @@ decision.
   design is redone rather than translated.
 - Any construct whose behaviour was undefined — no mapping, a contract
   decision, recorded.
+
+## Additional compatibility checks
+
+- A C++ move is overload resolution, not guaranteed ownership transfer.
+  Preserve user-defined copy/move effects and specified post-move states.
+- C++ long and size_t depend on the target data model; use verified widths
+  and C ABI types instead of assuming LP64 on Windows.
+- Preserve destruction sequencing, failed construction and exception safety.
+  Rust field drop order differs from C++ member destruction order.
+- Custom comparators can define key equivalence independently of equality.
+  Preserve the actual ordering and equivalence before choosing BTreeMap.

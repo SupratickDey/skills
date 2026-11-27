@@ -25,18 +25,18 @@ A buildable C++ implementation with its test command, a Cargo
 project, and a decided end state — `/port-to-rust` is run first,
 because whether a bridge exists at all is settled there. A sanitizer
 run over the source — ASan, UBSan, and TSan — is strongly recommended
-before phase 3, because it tells you which behaviour is UB and
-therefore not part of the contract.
+before phase 3 to expose defects on executed paths. A clean sanitizer run
+is not a proof of defined behavior.
 
 ## The traps
 
 | Trap | What actually differs |
 |---|---|
-| Undefined behaviour was doing something | Signed overflow, strict aliasing violations, reading uninitialized memory, and out-of-bounds access are undefined in C++ and defined-or-rejected in Rust. Any behaviour the source got from UB is behaviour the port cannot reproduce and must not try to — it is found, recorded, and decided, and it is one of the few legitimate reasons for a port to differ from its source |
-| Move semantics are not the same move | A C++ move leaves a valid, unspecified object behind and runs a destructor on it; a Rust move is a bitwise transfer with no hook and no leftover object. Code that reads a moved-from C++ object is doing something the port cannot express, and self-referential types that relied on move constructors need a different design entirely |
+| Undefined behaviour was doing something | Signed overflow, invalid aliasing, invalid uninitialized reads and out-of-bounds accesses can be undefined in C++. Rust safe code excludes many memory-safety violations, but unsafe Rust has its own undefined behavior and integer overflow depends on the operation and build policy. Any behaviour the source got from UB is behaviour the port cannot reproduce and must not try to — it is found, recorded, and decided, and it is one of the few legitimate reasons for a port to differ from its source |
+| Move semantics are not the same move | C++ move operations may invoke user-defined code; the source remains an object whose post-move contract depends on its type. Rust ownership transfer does not invoke a move constructor. Preserve observable move effects, moved-from states and address-sensitive invariants explicitly |
 | Implicit conversions | C++ converts between numeric types, applies integer promotion, and calls converting constructors without a cast. Rust requires every conversion to be written, so a port surfaces conversions the source never made visible — and each one is a place a value could have been truncated silently |
 | Iterator and reference invalidation | A `push_back` may reallocate and invalidate every outstanding iterator and reference; C++ tolerates the pattern until it does not. Rust rejects the pattern at compile time, so the port must restructure — usually with indices — and the restructuring is where the design gets clearer, not where it gets worse |
-| Exceptions cross layers invisibly | An exception propagates through frames that never mention it, including destructors that run on the way out. Mapping to `Result` makes every propagation point visible and surfaces error paths the source never named — `/rust-errors`. Note the `noexcept` boundary: a C++ function that promises not to throw becomes an infallible signature, and one that did throw becomes `Result` |
+| Exceptions cross layers invisibly | An exception propagates through frames that never mention it, including destructors that run on the way out. Mapping to `Result` makes every propagation point visible and surfaces error paths the source never named — `/rust-errors`. Note the `noexcept` boundary: noexcept constrains exception escape, not fallibility. Preserve status returns and failure behavior; a violating exception can terminate the process |
 
 ## RAII, smart pointers, and templates
 
@@ -56,6 +56,15 @@ translated — usually as a macro or a build script. Multiple
 inheritance and virtual bases have no mapping and become
 composition.
 
+## Ownership and ABI verification
+
+Preserve custom deleters, allocator ownership, shared-pointer aliasing,
+observable moved-from states, cleanup sequencing and exception guarantees.
+Do not assume C++ const implies Rust shared-reference immutability.
+Check native compiler, target, C++ library ABI, calling conventions and
+generated declarations. Verify the actual native artifact and callbacks
+with supported sanitizers; Miri does not execute arbitrary C++ libraries.
+
 ## Common questions
 
 **Why are C and C++ separate skills?** The mechanics of the port
@@ -70,21 +79,20 @@ The default is `Box` or a borrow; `Arc`/`Rc` is the exception the
 source justifies, and a port that turns every `shared_ptr` into an
 `Arc` has copied a habit rather than ported a design.
 
-**What happens to a self-referential type?** No mapping. A Rust type
-cannot hold a reference to itself, so a structure that relied on a
-stable address across moves is redone — arenas, indices, or pinning —
-and the redesign is a task in the plan, not a translation.
+**What happens to a self-referential type?** Prefer a representation using
+indices or stable ownership when suitable. Pinning can support address-sensitive
+invariants, but requires valid initialization, projection, lifetime and drop
+contracts. It is not an automatic safety guarantee.
 
 **May the port differ where the source relied on undefined behaviour?**
 Yes — that is the one legitimate difference a port may take from its
 source, and it is recorded: the finding goes into the parity
 contract as behaviour explicitly not reproduced.
 
-**`cxx` or a C shim?** `cxx` is the default — a shared, checked
-interface on both sides, no hand-written `unsafe` for ordinary
-calls. The C-ABI shim is the fallback when `cxx` does not fit: an
-existing stable C API, or a build that cannot take a new dependency.
-The shim is where the `unsafe` lives.
+**cxx or a C shim?** Select the existing compatible boundary. cxx checks
+supported declarations but does not prove all native lifetime or thread
+invariants. A stable C ABI with opaque handles can be appropriate when
+supported by the existing build and contract.
 
 ## It's working if
 
@@ -93,8 +101,8 @@ The shim is where the `unsafe` lives.
 - Sanitizer findings from the source are recorded in the contract as
   behaviour that is explicitly not reproduced.
 - `shared_ptr` did not become `Arc` by default.
-- Every `unsafe` block in the shim carries a `// SAFETY:` comment and
-  the shim passes `cargo miri test`.
+- Unsafe operations have established and documented invariants. Supported
+  Rust-only Miri checks and actual native integration are reported separately.
 - No exception or panic can cross the boundary.
 
 ## Where it fits
