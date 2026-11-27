@@ -412,6 +412,9 @@ The first form runs every case with a no-plugin baseline arm to report the score
 delta. Narrow it with `--case` or `--tag`. Only run it on a checkout you trust,
 since the scaffold scripts run as you. No benchmark results are published yet.
 
+For shared Claude Code and Codex fixture execution and paired reports, see
+[Cross-agent evaluation](./docs/evaluation.md). Runtime results are not yet published.
+
 ## Contributing
 
 Open an issue before building anything; `docs/contributing.md` explains why and
