@@ -113,8 +113,10 @@ claude plugin marketplace add SupratickDey/skills
 claude plugin install rewrite-rs-skills@rewrite-rs
 ```
 
-Run these in a terminal instead of inside a session. Add `--scope project` to the
-install command to share the plugin with everyone on a repo.
+Run these in a terminal instead of inside a session. To share the plugin through a
+repository, run the install command with `--scope project` inside it and commit
+`.claude/settings.json`. Each teammate then runs the `marketplace add` command once;
+the plugin then loads in that repository only.
 
 </details>
 
@@ -142,8 +144,9 @@ To install one skill, name it:
 gh skill install SupratickDey/skills rust/idiomatic-rust
 ```
 
-Project scope is the default; `--scope user` installs for your account, and
-`--agent <name>` picks the target agent.
+Requires GitHub CLI 2.90.0 or later. Project scope is the default; `--scope user`
+installs for your account, and `--agent <name>` picks the target agent. Without a
+version, `gh skill` installs from the latest tagged release.
 
 </details>
 
