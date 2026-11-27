@@ -33,6 +33,10 @@ Do not prompt unexpectedly in automated or redirected input. Handle broken
 pipes according to the command's documented behavior rather than panicking
 on output failures. Buffer or stream large output deliberately.
 
+Read EXIT-CODES.md when implementing the top-level flow: it has a compiled,
+tested command with documented exit statuses, separate data and diagnostic
+streams, non-UTF-8 arguments and closed-pipe handling.
+
 Return documented exit status for success, usage errors and execution
 failures. Do not report success for incomplete operations. Keep help and
 version output consistent with the command schema. Account for OS-native

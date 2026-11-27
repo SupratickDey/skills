@@ -30,7 +30,9 @@ Do not serialize usize or Rust memory layout as a portable protocol.
 Avoid assumptions about pointer width, alignment, clocks or signal behavior.
 Check platform-specific subprocess quoting and argument passing; prefer
 Command with separate arguments rather than building shell strings.
-Route untrusted paths and input to `/rust-security`.
+Route untrusted paths and input to `/rust-security`. Read PATHS.md before
+joining a path from configuration, an archive or a request onto a base
+directory: it classifies path components instead of matching strings.
 
 ## Isolate platform-specific behavior
 
