@@ -151,3 +151,6 @@
 
 - Codex skills and plugins: https://developers.openai.com/codex/skills and https://developers.openai.com/codex/plugins
 - Claude Code plugin reference: https://code.claude.com/docs/en/plugins-reference
+
+- Codex compatibility manifest skill path arrays: https://developers.openai.com/plugins/deploy/submission
+- Claude Code plugin reference: https://code.claude.com/docs/en/plugins-reference

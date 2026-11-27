@@ -90,8 +90,14 @@ The procedure itself lives in `.agents/releasing.md`.
 The fork's installation commands target SupratickDey/skills; retain upstream
 attribution and plugin identifiers. Manual copy uses the promoted-bucket
 installer and rejects collisions. Its tests use temporary destinations only.
-The managed Codex root remains provisional: the catalog gate rejects adding
-experimental skills while broad discovery is configured. Do not claim managed
+Both managed manifests declare the same explicit promoted inventory; the
+catalog gate rejects missing, extra and duplicate paths and broad roots. Do not claim managed
 plugin discovery or invocation parity until tested in the actual agents.
 Record agent versions, install scope, visible names, explicit and implicit
 invocation checks, and cleanup. Check CLI availability before running tests.
+
+## Runtime acceptance for both agents
+
+Follow the versioned checklist in `.agents/cross-agent-verification.md`.
+Static metadata checks and filesystem tests are prerequisites, not runtime
+activation evidence. Keep results for each installed agent separately.

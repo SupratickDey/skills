@@ -186,10 +186,9 @@ codex plugin marketplace add SupratickDey/skills
 ```
 
 Then open the `/plugins` browser in Codex, install `rewrite-rs-skills` from the
-`rewrite-rs` marketplace, and start a new session. The plugin manifest points Codex at
-`./skills/`. Nested discovery and implicit invocation have not been verified
-in a running Codex session. If experimental content is present, use the
-promoted-only manual installation below instead. If the skills do not appear, remove the plugin and use the
+`rewrite-rs` marketplace, and start a new session. Both plugin manifests explicitly list the promoted skill directories.
+Managed discovery and implicit invocation still require verification in a
+running Codex session. If the skills do not appear, remove the plugin and use the
 `manual-copy` block instead. Codex reads skills from `.agents/skills/` in a repo, or from
 `~/.agents/skills/` for your user.
 
