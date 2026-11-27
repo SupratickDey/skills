@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: api-page-ties
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  Paging visits every order exactly once in a deterministic newest-first order, with ties on
+  created_at broken by descending id, so orders sharing a timestamp are never skipped or repeated at a
+  page boundary. The cursor encodes both created_at and id, malformed cursors return
+  PageError::InvalidCursor, the default limit stays 20, and limits of 0 or above MAX_LIMIT return
+  PageError::InvalidLimit instead of being used. The public function, types and constants are
+  unchanged, no dependencies are added, and tests cover ties across a page boundary, the limit bounds
+  and malformed cursors.

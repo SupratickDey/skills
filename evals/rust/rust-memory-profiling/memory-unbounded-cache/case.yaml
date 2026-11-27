@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: memory-unbounded-cache
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  ProfileCache retains at most its capacity, evicting the least recently used entry, so memory no
+  longer grows with the number of distinct ids. new keeps DEFAULT_CAPACITY, with_capacity rejects 0
+  with CacheError and get still returns the loader result and serves repeats from the cache. Eviction
+  cost does not grow with the total number of ids ever requested. No dependency is added, tests show
+  the bound after many distinct ids and that recently used entries survive, and the report does not
+  claim a measured memory improvement it did not measure.

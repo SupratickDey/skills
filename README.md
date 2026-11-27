@@ -392,7 +392,10 @@ tasks and grade the result. There is one case per porting skill (C, C++, Go,
 Java, Python, TypeScript, and `port-to-rust`) and three cases for
 `rust-code-review`, including static review when compilation is blocked, plus
 a signed-division Python CLI parity case, plus one case each for `rust-config`, `rust-debugging`, `rust-architecture`,
-`rust-security`, `rust-refactoring` and `rust-implementation-planning`.
+`rust-security`, `rust-refactoring` and `rust-implementation-planning`, and one case each for the
+specialized skills: `rust-api-development`, `rust-database`, `rust-resilience`,
+`rust-production-readiness`, `rust-workspace-management`, `rust-cross-platform`,
+`rust-cli-development`, `rust-memory-profiling` and `rust-distributed-systems`.
 
 Each case is a directory:
 

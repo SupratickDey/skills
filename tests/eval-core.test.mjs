@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, symlinkSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { collectSkills } from "../scripts/check-skills.mjs";
 import {
   aggregate, buildArgv, buildJudgePrompt, checkVisibility, discover, expectedOutcome, extractJudgeGrade,
   parseClaudeEvents, parseCodexEvents, parseCodexPromptSkills, score, stage, summarize, weights,
@@ -183,4 +184,20 @@ test("judge prompts are arm-blind and judge output is parsed strictly", () => {
   const parsed = extractJudgeGrade("Notes.\n```json\n" + JSON.stringify(grade("x")) + "\n```\n");
   assert.equal(score(parsed), 100);
   assert.throws(() => extractJudgeGrade("no grade here"));
+});
+
+test("every case targets promoted skills and every specialized skill has a case", () => {
+  const promoted = new Set(collectSkills(new URL("../", import.meta.url).pathname)
+    .filter((skill) => skill.promoted).map((skill) => skill.directory));
+  const cases = discover(new URL("../evals/", import.meta.url).pathname);
+  for (const evalCase of cases) {
+    for (const tag of evalCase.tags) assert.ok(promoted.has(tag), `${evalCase.name} tags unknown skill ${tag}`);
+  }
+  const covered = new Set(cases.flatMap((evalCase) => evalCase.tags));
+  const specialized = [
+    "rust-api-development", "rust-database", "rust-resilience", "rust-production-readiness",
+    "rust-workspace-management", "rust-cross-platform", "rust-cli-development", "rust-memory-profiling",
+    "rust-distributed-systems",
+  ];
+  assert.deepEqual(specialized.filter((name) => !covered.has(name)), []);
 });
