@@ -130,3 +130,10 @@
 - JNI specification: https://docs.oracle.com/en/java/javase/25/docs/specs/jni/index.html
 - Foreign Function and Memory API: https://openjdk.org/jeps/454
 - Java BigDecimal contract: https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/math/BigDecimal.html
+
+## C++ migration ownership and ABI boundaries
+
+- CXX bridge types and exception translation: https://cxx.rs/ and https://cxx.rs/binding/result.html
+- C++ reference material for smart pointers, move operations and destruction: https://en.cppreference.com/w/cpp/memory/shared_ptr and https://en.cppreference.com/w/cpp/language/move_constructor and https://en.cppreference.com/w/cpp/language/destructor
+- Rust FFI and unwind contracts: https://doc.rust-lang.org/nomicon/ffi.html
+- LLVM sanitizer documentation: https://clang.llvm.org/docs/AddressSanitizer.html and https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html and https://clang.llvm.org/docs/ThreadSanitizer.html
