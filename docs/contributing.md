@@ -84,3 +84,14 @@ release, and the changeset on your pull request is what puts it in the notes.
 You do not need to pick a version, tag anything, or edit `CHANGELOG.md` — the
 changelog is assembled from changesets, and a hand-edit to it will conflict.
 The procedure itself lives in `.agents/releasing.md`.
+
+## Cross-agent distribution checks
+
+The fork's installation commands target SupratickDey/skills; retain upstream
+attribution and plugin identifiers. Manual copy uses the promoted-bucket
+installer and rejects collisions. Its tests use temporary destinations only.
+The managed Codex root remains provisional: the catalog gate rejects adding
+experimental skills while broad discovery is configured. Do not claim managed
+plugin discovery or invocation parity until tested in the actual agents.
+Record agent versions, install scope, visible names, explicit and implicit
+invocation checks, and cleanup. Check CLI availability before running tests.

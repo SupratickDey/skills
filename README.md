@@ -7,8 +7,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/group/github/release/rewrite-rs/skills+github/ci/rewrite-rs/skills+github/license/rewrite-rs/skills+github/last-commit/rewrite-rs/skills+github/stars/rewrite-rs/skills.svg?variant=secondary&mode=dark" />
-    <img alt="Release, CI, license, last commit, stars" src="https://shieldcn.dev/group/github/release/rewrite-rs/skills+github/ci/rewrite-rs/skills+github/license/rewrite-rs/skills+github/last-commit/rewrite-rs/skills+github/stars/rewrite-rs/skills.svg?variant=secondary&mode=light" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/group/github/release/SupratickDey/skills+github/ci/SupratickDey/skills+github/license/SupratickDey/skills+github/last-commit/SupratickDey/skills+github/stars/SupratickDey/skills.svg?variant=secondary&mode=dark" />
+    <img alt="Release, CI, license, last commit, stars" src="https://shieldcn.dev/group/github/release/SupratickDey/skills+github/ci/SupratickDey/skills+github/license/SupratickDey/skills+github/last-commit/SupratickDey/skills+github/stars/SupratickDey/skills.svg?variant=secondary&mode=light" />
   </picture>
   <br />
   <a href="#skills">
@@ -30,7 +30,7 @@ language (C, C++, Go, Java, Python, TypeScript) over a shared migration spine.
 **Workflow:** review, testing, setup, and a router that picks the skill for you.
 **Misc:** the occasional setup and audit skills.
 
-> ⭐ **Found this useful? Give it a star.** rewrite-rs/skills is free and open source. A star takes one click, tells us the work is worth continuing, and helps other Rust developers, and teams porting code into Rust, find the project.
+> ⭐ **Found this useful? Give it a star.** This fork of rewrite-rs/skills is free and open source. A star takes one click, tells us the work is worth continuing, and helps other Rust developers, and teams porting code into Rust, find the project.
 
 ## How it works
 
@@ -102,14 +102,14 @@ duplicated, and the copies drift apart.
 Inside a session:
 
 ```
-/plugin marketplace add rewrite-rs/skills
+/plugin marketplace add SupratickDey/skills
 /plugin install rewrite-rs-skills@rewrite-rs
 ```
 
 Or from a terminal:
 
 ```bash
-claude plugin marketplace add rewrite-rs/skills
+claude plugin marketplace add SupratickDey/skills
 claude plugin install rewrite-rs-skills@rewrite-rs
 ```
 
@@ -122,7 +122,7 @@ install command to share the plugin with everyone on a repo.
 <summary>Any agent (npx)</summary>
 
 ```bash
-npx skills@latest add rewrite-rs/skills
+npx skills@latest add SupratickDey/skills
 ```
 
 Pick the skills you want, and which coding agents to install them on.
@@ -133,13 +133,13 @@ Pick the skills you want, and which coding agents to install them on.
 <summary>GitHub CLI (Copilot and others)</summary>
 
 ```bash
-gh skill install rewrite-rs/skills --all
+gh skill install SupratickDey/skills --all
 ```
 
 To install one skill, name it:
 
 ```bash
-gh skill install rewrite-rs/skills rust/idiomatic-rust
+gh skill install SupratickDey/skills rust/idiomatic-rust
 ```
 
 Project scope is the default; `--scope user` installs for your account, and
@@ -167,7 +167,7 @@ for skill in \
   misc/rust-ffi misc/rust-macros misc/rust-serde misc/rust-supply-chain \
   misc/setup-rust-ci misc/setup-rust-pre-commit
 do
-  gemini skills install https://github.com/rewrite-rs/skills.git --path "skills/$skill" --consent
+  gemini skills install https://github.com/SupratickDey/skills.git --path "skills/$skill" --consent
 done
 ```
 
@@ -182,13 +182,14 @@ only.
 **Untested: this Codex plugin route has not been run end to end.**
 
 ```bash
-codex plugin marketplace add rewrite-rs/skills
+codex plugin marketplace add SupratickDey/skills
 ```
 
 Then open the `/plugins` browser in Codex, install `rewrite-rs-skills` from the
 `rewrite-rs` marketplace, and start a new session. The plugin manifest points Codex at
-`./skills/`; whether Codex discovers the nested `skills/<bucket>/<name>` folders from
-there is unconfirmed. If the skills do not appear, remove the plugin and use the
+`./skills/`. Nested discovery and implicit invocation have not been verified
+in a running Codex session. If experimental content is present, use the
+promoted-only manual installation below instead. If the skills do not appear, remove the plugin and use the
 `manual-copy` block instead. Codex reads skills from `.agents/skills/` in a repo, or from
 `~/.agents/skills/` for your user.
 
@@ -198,15 +199,15 @@ there is unconfirmed. If the skills do not appear, remove the plugin and use the
 <summary>Copy the folders by hand</summary>
 
 ```bash
-git clone https://github.com/rewrite-rs/skills rewrite-rs-skills
+git clone https://github.com/SupratickDey/skills rewrite-rs-skills
+cd rewrite-rs-skills
 mkdir -p ~/.agents/skills
-for dir in rewrite-rs-skills/skills/*/*/; do
-  case "$dir" in */in-progress/*) continue ;; esac
-  cp -R "$dir" ~/.agents/skills/
-done
+bash scripts/install-promoted-skills.sh ~/.agents/skills
 ```
 
-This flattens each `skills/<bucket>/<name>` folder into one skills directory. Replace
+This copies only the promoted skill directories into a flat skills directory.
+The installer preflights name collisions and refuses to overwrite existing
+skills. Run it with Bash; select a destination for just one agent. Replace
 `~/.agents/skills` with the directory for your agent:
 
 Where each agent looks, for your user and for a single project:
@@ -226,10 +227,10 @@ or take the plugin route. If a freshly copied skill is missing, restart the agen
 <summary>claude.ai</summary>
 
 ```bash
-git clone https://github.com/rewrite-rs/skills rewrite-rs-skills
+git clone https://github.com/SupratickDey/skills rewrite-rs-skills
 mkdir -p skill-zips
-for dir in rewrite-rs-skills/skills/*/*/; do
-  case "$dir" in */in-progress/*) continue ;; esac
+for dir in rewrite-rs-skills/skills/{rust,porting,workflow,misc}/*/; do
+  [ -f "$dir/SKILL.md" ] || continue
   name=$(basename "$dir")
   (cd "$(dirname "$dir")" && zip -r "$OLDPWD/skill-zips/$name.zip" "$name" -x '*.DS_Store')
 done
