@@ -38,7 +38,9 @@ Use deterministic ordering and a unique tie-breaker. Bind cursor semantics to
 the authorized query and filters; validate limits and malformed or stale
 cursors. Specify consistency expectations when data changes between pages.
 Offset pagination may be adequate for a small stable dataset. Do not promise
-snapshot consistency without a supporting storage contract.
+snapshot consistency without a supporting storage contract. Read
+PAGINATION.md for a compiled, tested cursor implementation with limit
+validation, a versioned query-bound cursor and next-page detection.
 
 Define idempotency scope, request fingerprint, retention and response replay
 for operations that must tolerate duplicate delivery. Ensure concurrent

@@ -5,6 +5,9 @@ on:
     branches: [main]
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+
 concurrency:
   group: pre-merge-gate-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -14,17 +17,24 @@ jobs:
     name: Check source branch and forbidden paths
     runs-on: ubuntu-latest
     steps:
+      # Untrusted values reach the script through the environment, never by
+      # template expansion into the script text.
       - name: Reject non-dev PRs
         if: ${{ github.head_ref != 'dev' }}
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
-          echo "::error::PRs from '${{ github.head_ref }}' to main are not allowed. Only dev->main merges are permitted."
+          echo "::error::PRs from '${HEAD_REF}' to main are not allowed. Only dev->main merges are permitted."
           exit 1
 
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Scan PR for forbidden files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           FORBIDDEN=(
             ".claude/"
@@ -34,7 +44,7 @@ jobs:
             ".continue-here.md"
             "HANDOFF.json"
           )
-          CHANGED=$(git diff --diff-filter=ACMR --name-only ${{ github.event.pull_request.base.sha }}..HEAD)
+          CHANGED=$(git diff --diff-filter=ACMR --name-only "$BASE_SHA"..HEAD)
           MATCHED=()
           for path in "${FORBIDDEN[@]}"; do
             while IFS= read -r f; do

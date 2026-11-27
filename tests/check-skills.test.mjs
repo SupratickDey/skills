@@ -265,14 +265,77 @@ test("Codex explicit inventory excludes experimental skills", () => {
     const dir = join(root, ".codex-plugin");
     mkdirSync(dir);
     const file = join(dir, "plugin.json");
-    writeFileSync(file, JSON.stringify({ skills: ["./skills/rust/idiomatic-rust"] }));
+    writeFileSync(file, JSON.stringify({ name: "rewrite-rs-skills", skills: ["./skills/rust/idiomatic-rust"] }));
     assert.deepEqual(checkRepo(root).errors, []);
-    writeFileSync(file, JSON.stringify({ skills: "./skills/" }));
+    writeFileSync(file, JSON.stringify({ name: "rewrite-rs-skills", skills: "./skills/" }));
     assert.ok(checkRepo(root).errors.some((e) => e.includes("must explicitly list")));
-    writeFileSync(file, JSON.stringify({ skills: ["./skills/rust/idiomatic-rust", "./skills/in-progress/draft-skill"] }));
+    writeFileSync(file, JSON.stringify({ name: "rewrite-rs-skills", skills: ["./skills/rust/idiomatic-rust", "./skills/in-progress/draft-skill"] }));
     assert.ok(checkRepo(root).errors.some((e) => e.includes("which plugin.json does not")));
-    writeFileSync(file, JSON.stringify({ skills: [] }));
+    writeFileSync(file, JSON.stringify({ name: "rewrite-rs-skills", skills: [] }));
     assert.ok(checkRepo(root).errors.some((e) => e.includes("skills array is missing")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("frontmatter names and descriptions stay within agent limits", () => {
+  const root = scaffold();
+  try {
+    const dir = addSkill(root, "rust", "idiomatic-rust");
+    promote(root, "rust", "idiomatic-rust");
+    const long = "x".repeat(1025);
+    writeFileSync(join(dir, "SKILL.md"), `---\nname: idiomatic-rust\ndescription: ${long}\n---\n`);
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("at most 1024")));
+    writeFileSync(join(dir, "SKILL.md"), "---\nname: idiomatic-rust\ndescription: >\n  folded\n---\n");
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("single-line")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("marketplaces must offer the plugin from the repository root", () => {
+  const root = scaffold();
+  try {
+    const claude = join(root, ".claude-plugin", "marketplace.json");
+    writeFileSync(claude, JSON.stringify({ name: "rewrite-rs", plugins: [{ name: "rewrite-rs-skills", source: "./" }] }));
+    mkdirSync(join(root, ".agents", "plugins"), { recursive: true });
+    const codex = join(root, ".agents", "plugins", "marketplace.json");
+    const entry = { name: "rewrite-rs-skills", source: { source: "local", path: "./" } };
+    writeFileSync(codex, JSON.stringify({ name: "rewrite-rs", plugins: [entry] }));
+    assert.deepEqual(checkRepo(root).errors, []);
+    writeFileSync(codex, JSON.stringify({ name: "rewrite-rs", plugins: [{ ...entry, name: "other" }] }));
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("does not list plugin")));
+    writeFileSync(codex, JSON.stringify({ name: "other", plugins: [entry] }));
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("name differs")));
+    writeFileSync(claude, JSON.stringify({ name: "other", plugins: [{ name: "rewrite-rs-skills", source: "./sub" }] }));
+    assert.ok(checkRepo(root).errors.some((e) => e.includes('must be "./"')));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("README install blocks must match .agents/install-block.md", () => {
+  const root = scaffold();
+  try {
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    writeFileSync(
+      join(root, ".agents", "install-block.md"),
+      "# Install block\n\n## `npx`\n\n```bash\nnpx skills add owner/repo\n```\n"
+    );
+    assert.ok(checkRepo(root).errors.some((e) => e.includes('install block "npx"')));
+    writeFileSync(join(root, "README.md"), "# Skills\n\n```bash\nnpx skills add owner/repo\n```\n");
+    assert.deepEqual(checkRepo(root).errors, []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("the Codex manifest must use the same plugin name", () => {
+  const root = scaffold();
+  try {
+    mkdirSync(join(root, ".codex-plugin"));
+    writeFileSync(join(root, ".codex-plugin", "plugin.json"), JSON.stringify({ name: "other", skills: [] }));
+    assert.ok(checkRepo(root).errors.some((e) => e.includes('name "other" differs')));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -17,9 +17,12 @@
     "changeset": "changeset",
     "version": "changeset version && node scripts/sync-plugin-version.mjs",
     "check-plugin-version": "node scripts/sync-plugin-version.mjs --check",
+    "check:install": "node scripts/check-plugin-install.mjs",
     "eval:list": "node scripts/evaluate.mjs list",
     "eval:run": "node scripts/evaluate.mjs run",
-    "eval:report": "node scripts/evaluate.mjs report"
+    "eval:judge": "node scripts/evaluate.mjs judge",
+    "eval:report": "node scripts/evaluate.mjs report",
+    "eval:claude": "claude plugin eval . --scaffold --allow-tools Bash Write Edit --no-publish"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.7.0",

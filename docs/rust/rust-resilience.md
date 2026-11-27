@@ -44,6 +44,10 @@ a verified idempotency or reconciliation strategy; coordinate with
 each call chain to avoid multiplicative load. Stop when cancelled or the
 budget is exhausted; do not spawn unbounded retries.
 
+Read RETRY.md before writing or reviewing a retry loop: it has a compiled,
+tested loop with a deadline budget, a retryability classifier, capped
+jittered backoff and an injected clock.
+
 Use a circuit breaker only where repeated dependency failures merit it.
 Define the failure classifier, opening condition, recovery probe concurrency,
 state scope and observable behavior. Half-open probes must be bounded;
