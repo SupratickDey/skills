@@ -38,7 +38,9 @@ Place the complete atomic database operation on one transaction/connection.
 Do not call a helper that silently obtains another pooled connection.
 Choose isolation, constraints, locks or conditional updates from the actual
 race and engine semantics. Prefer enforced uniqueness and referential
-constraints over unprotected check-then-write logic. Roll back on failure;
+constraints over unprotected check-then-write logic. Read
+CONCURRENT-UPDATES.md for a compiled, tested conditional update that turns a
+lost write into a reported conflict. Roll back on failure;
 with SQLx, an unfinished Transaction initiates rollback on drop, which does
 not make arbitrary remote side effects atomic. Check commit results and
 reconcile ambiguous completion before retrying a mutation. Retry the complete

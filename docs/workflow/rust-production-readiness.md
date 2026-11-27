@@ -31,7 +31,8 @@ startup behavior and termination grace period against the application.
 On shutdown, stop admission, signal cancellation, drain or persist accepted
 work according to its durability requirements, join owned tasks and close
 resources within the approved deadline. Distinguish completed, retriable and
-unknown operations. Do not rely on async work in Drop, assume all blocking
+unknown operations. Read LIFECYCLE.md for a compiled, tested admission gate
+with separate readiness and liveness, a bounded drain and a verdict table. Do not rely on async work in Drop, assume all blocking
 tasks abort, or silently discard mandatory audit events. Test the actual
 service lifecycle where possible.
 

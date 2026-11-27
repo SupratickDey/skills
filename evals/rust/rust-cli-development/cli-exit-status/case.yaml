@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: cli-exit-status
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  tally follows the contract in README.md: exit 0 when at least one line matches, 1 when none match, 2
+  for usage errors and unreadable files; counts go to stdout only and diagnostics to stderr; missing
+  arguments and unreadable files produce a diagnostic and status 2 instead of a panic; and a stdout
+  closed early ends the command without a panic. Output format and argument order are unchanged, no
+  dependency is added, and integration tests run the built binary to check statuses and streams.

@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: distributed-redelivery
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  handle applies each per-account sequence exactly once: a sequence at or below the stored one is
+  acknowledged without effect, the next sequence is applied through the single atomic Ledger::apply
+  call and then acknowledged, and a sequence beyond the next one is not applied and returns
+  Ack::Retry. Nothing is acknowledged before its effect is stored, and the stored sequence advances
+  only with the effect. The trait, InMemoryLedger, Delivery and Ack are unchanged, no dependency is
+  added, and tests cover duplicates, out-of-order arrival followed by the missing message, and
+  independent accounts.

@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: readiness-review
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  READINESS.md gives a not-ready verdict and records each gate as passed, failed, blocked or not
+  applicable with evidence from the code, the manifest or commands actually run. It identifies the
+  hardcoded fallback API token, the startup panic on a malformed WORKER_PORT, the unbounded job queue,
+  the shutdown path that discards queued jobs, and readiness and liveness probes that share an always-
+  ok health check, and it marks what cannot be verified here (live deployment, real probe behavior) as
+  blocked rather than passed. Source files are not modified and the report does not invent
+  infrastructure or targets the project does not have.

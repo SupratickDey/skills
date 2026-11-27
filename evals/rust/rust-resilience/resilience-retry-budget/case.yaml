@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: resilience-retry-budget
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  reserve_with_retry makes at most max_attempts attempts, never sleeps past the deadline and passes
+  each attempt the smaller of 30 seconds and the remaining budget. Unavailable and TimedOut are
+  retried (reserve is idempotent per order id), Rejected is returned at once, and RateLimited waits at
+  least retry_after. Backoff doubles from base_delay, is capped at max_delay and cannot overflow. When
+  it stops it returns the last error. The signature, traits and types are unchanged, no dependencies
+  or real sleeps in tests are added, and tests use a fake clock.

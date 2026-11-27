@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: cross-platform-export-path
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  export_path builds the path with std::path APIs and returns ExportError::InvalidName for any report
+  name that is empty, absolute, rooted, carries a Windows drive or UNC prefix, or contains a parent
+  component, including backslash and trailing forms, while still accepting nested names such as
+  2026/q1. display_name never panics on non-UTF-8 paths. Public names, parameters and the error type
+  are unchanged, no dependency is added, and tests cover the rejected forms with Windows-only cases
+  behind cfg(windows).
