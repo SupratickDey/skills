@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: workspace-shared-metadata
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  A new library member crates/audit is added and builds. Shared package metadata (version, edition,
+  rust-version, license), the ledger path dependency and the lints common to every member are declared
+  once at the workspace root and inherited. Every existing package keeps its effective metadata and
+  lint levels: ledger still warns on missing_docs and the other members do not gain that lint, which
+  requires respecting that lint inheritance is all or nothing per member. The resolver and names are
+  unchanged, no external dependency is added, and the workspace and each member build and test on
+  their own.

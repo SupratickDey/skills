@@ -1,0 +1,15 @@
+[package]
+name = "ledger-report"
+version = "0.3.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+
+[dependencies]
+ledger = { path = "../ledger" }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "deny"

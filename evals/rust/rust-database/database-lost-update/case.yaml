@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: database-lost-update
+context:
+  scaffold_script: stage-inputs.sh
+expected_outcome: |
+  reserve uses StockStore::update_if_version with the version it read, so a concurrent change between
+  the read and the write returns ReserveError::Conflict and never overwrites the other writer. A
+  reservation larger than the available stock returns ReserveError::InsufficientStock without writing,
+  an unknown SKU returns UnknownSku, and a successful reservation returns the stored stock with the
+  new version. The trait, InMemoryStore, the function signature and the error type keep their existing
+  variants (Conflict may be added if absent), the unconditional put is not used for reservations, no
+  unbounded retry loop or dependency is added, and tests simulate a concurrent writer between the read
+  and the write.

@@ -50,7 +50,8 @@ lower RSS. Assess latency, CPU and allocation trade-offs; use fallible
 allocation APIs where the application contract can handle allocation
 failure. Do not promise recovery from every out-of-memory condition.
 Route general benchmarking to `/rust-performance` and memory safety to
-`/unsafe-rust`.
+`/unsafe-rust`. Read ALLOCATION-TESTS.md to keep a measured allocation fix
+from regressing: it has a compiled, test-only counting allocator.
 
 ### Verification
 

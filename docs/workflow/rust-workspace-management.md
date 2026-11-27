@@ -31,7 +31,8 @@ declaration, not necessarily one resolved crate version. Default features
 enabled in an inherited dependency declaration cannot be disabled by a member;
 check actual feature selection when consolidating declarations. Cargo lint
 inheritance is all-or-nothing for a member; do not combine it with explicit
-member lint tables.
+member lint tables. Read INHERITANCE.md for a complete, verified two-member
+workspace and the commands that check the resolved graph.
 
 Features are additive where feasible. Preserve existing feature names and
 default behavior. Use dep: feature syntax or weak dependency features only
