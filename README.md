@@ -179,16 +179,18 @@ only.
 <details>
 <summary>OpenAI Codex</summary>
 
-**Untested: this Codex plugin route has not been run end to end.**
+**Installation and skill discovery are verified with Codex CLI 0.172.0. Skill use in a live
+Codex session is not yet verified.**
 
 ```bash
 codex plugin marketplace add SupratickDey/skills
+codex plugin add rewrite-rs-skills@rewrite-rs
 ```
 
-Then open the `/plugins` browser in Codex, install `rewrite-rs-skills` from the
-`rewrite-rs` marketplace, and start a new session. Both plugin manifests explicitly list the promoted skill directories.
-Managed discovery and implicit invocation still require verification in a
-running Codex session. If the skills do not appear, remove the plugin and use the
+Or open the `/plugins` browser in Codex and install `rewrite-rs-skills` from the
+`rewrite-rs` marketplace. Start a new session afterwards. Codex offers the model-invoked
+skills automatically; the four user-invoked skills (`rust-skills-map`, `setup-rust-skills`,
+`setup-rust-ci` and `setup-rust-pre-commit`) load only when you name them. If the skills do not appear, remove the plugin and use the
 `manual-copy` block instead. Codex reads skills from `.agents/skills/` in a repo, or from
 `~/.agents/skills/` for your user.
 

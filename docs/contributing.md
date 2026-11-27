@@ -60,7 +60,7 @@ generator; no GitHub API authentication is needed.
 
 ## Protected files
 
-These five paths affect every consumer of the plugin, not just this repository, so
+These seven paths affect every consumer of the plugin, not just this repository, so
 a change to any of them triggers an automatic warning comment on the pull request
 from `protected-files-check`:
 
@@ -68,6 +68,10 @@ from `protected-files-check`:
   of promoted buckets, and that the version here agrees with `package.json`.
 - **`.claude-plugin/marketplace.json`** — verify the entry still points at the
   correct plugin source and metadata.
+- **`.codex-plugin/plugin.json`**: verify the skills array matches
+  `.claude-plugin/plugin.json` exactly and the version agrees with `package.json`.
+- **`.agents/plugins/marketplace.json`**: verify the Codex entry still points at
+  the repository root.
 - **`.agents/install-block.md`** — verify the install wording here still matches
   what is pasted into onboarding docs and the README, byte for byte.
 - **`package.json`** — verify the version still agrees with `plugin.json`, and that

@@ -61,5 +61,17 @@
     "./skills/rust/rust-cli-development",
     "./skills/rust/rust-memory-profiling",
     "./skills/rust/rust-distributed-systems"
-  ]
+  ],
+  "interface": {
+    "displayName": "rewrite-rs skills",
+    "shortDescription": "Idiomatic Rust, production engineering and porting into Rust",
+    "longDescription": "Agent skills for writing idiomatic Rust, designing and reviewing production Rust services, and porting code into Rust from Python, TypeScript, Go, Java, C++ and C while preserving observable behavior.",
+    "developerName": "rewrite-rs",
+    "category": "Engineering",
+    "websiteURL": "https://rewrite.rs",
+    "defaultPrompt": [
+      "Review this Rust change for correctness and idiom",
+      "Plan a behavior-preserving port of this module to Rust"
+    ]
+  }
 }

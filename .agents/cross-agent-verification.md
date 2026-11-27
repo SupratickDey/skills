@@ -7,8 +7,10 @@ Record the checkout commit, agent version, OS, installation route and scope.
 ## Static checks
 
 Run npm run check, including the catalog, version and Rust example checks.
-Run claude plugin validate . --strict using a CLI that supports that command;
-inspect the actual CLI help if the command differs. Verify both manifests
+Run npm run check:install. It validates the Claude Code plugin, installs it
+into throwaway Claude Code and Codex homes, and compares the skills each
+agent exposes with the manifests; Codex must hide the user-invoked skills
+from its implicit catalog. It needs both CLIs but no credentials. Verify both manifests
 contain the same promoted directory paths, and the marketplace entries
 resolve to the plugin root. Do not change permissions or use real secrets.
 
