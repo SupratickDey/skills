@@ -6,6 +6,8 @@ on:
     paths:
       - .claude-plugin/plugin.json
       - .claude-plugin/marketplace.json
+      - .codex-plugin/plugin.json
+      - .agents/plugins/marketplace.json
       - .agents/install-block.md
       - package.json
       - .github/workflows/**
@@ -23,6 +25,8 @@ jobs:
             const watched = [
               '.claude-plugin/plugin.json',
               '.claude-plugin/marketplace.json',
+              '.codex-plugin/plugin.json',
+              '.agents/plugins/marketplace.json',
               '.agents/install-block.md',
               'package.json',
             ];
@@ -50,8 +54,9 @@ jobs:
                 + `**Protected files changed** — these affect every consumer of the plugin.\n\n`
                 + hit.map(f => `- \`${f.filename}\` (${f.status})`).join('\n')
                 + `\n\nVerify: the skills array still matches the promoted buckets, `
+                + `both plugin manifests list the same skills, `
                 + `install wording still matches \`.agents/install-block.md\` byte for byte, `
-                + `and \`package.json\` and \`plugin.json\` versions still agree.\n\n`
+                + `and \`package.json\` and both \`plugin.json\` versions still agree.\n\n`
                 + `See [Contributing](${docUrl}).`;
             } else if (existing) {
               body = `${marker}\nNo protected files are modified by this PR any more. Warning cleared.`;

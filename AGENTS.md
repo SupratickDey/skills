@@ -126,8 +126,12 @@ Run these before considering skill work done:
 - `npm run check` — runs the test harness, the index checker (`check-skills.mjs`),
   the plugin-version check (`sync-plugin-version.mjs --check`), and the example
   compile gate (`check-examples.mjs`).
-- `claude plugin validate . --strict` — after touching `.claude-plugin/plugin.json`
-  or `.claude-plugin/marketplace.json`.
+- `npm run check:install` after touching either plugin manifest or marketplace
+  file. It runs `claude plugin validate`, then installs the plugin into
+  throwaway Claude Code and Codex homes and compares the visible skills with
+  the manifests. Its only accepted validator warning is that the root
+  `CLAUDE.md` is not loaded for plugin users, which is intended; that warning
+  is why `claude plugin validate . --strict` exits nonzero here.
 - `scripts/link-skills.sh` — symlinks skills into the local harness for manual
   testing.
 

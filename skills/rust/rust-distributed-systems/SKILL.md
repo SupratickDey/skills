@@ -36,7 +36,8 @@ external publication and its potential duplicate delivery.
 
 Define ordering by key, partition, stream or another explicit scope.
 Handle gaps, duplicates, reordering and poison messages according to the
-domain contract. Use bounded replay and recovery procedures. Do not silently
+domain contract. Read ORDERING.md for a compiled, tested consumer that
+applies per-key sequences, acknowledges redeliveries and holds back gaps. Use bounded replay and recovery procedures. Do not silently
 drop required events or promise exactly-once effects beyond the protocol and
 systems that establish them. Preserve schema evolution and versioned message
 contracts with `/rust-serde`.

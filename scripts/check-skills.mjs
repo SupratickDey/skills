@@ -4,6 +4,10 @@ import { join } from "node:path";
 const PROMOTED_BUCKETS = ["rust", "porting", "workflow", "misc"];
 const ALL_BUCKETS = [...PROMOTED_BUCKETS, "in-progress"];
 
+// Limits from the Agent Skills format that both Claude Code and Codex read.
+const MAX_NAME_LENGTH = 64;
+const MAX_DESCRIPTION_LENGTH = 1024;
+
 const NUMBER_WORDS = {
   one: 1,
   two: 2,
@@ -70,6 +74,60 @@ export function collectSkills(repoRoot) {
   return skills;
 }
 
+function readJson(repoRoot, rel, errors) {
+  const path = join(repoRoot, rel);
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    errors.push(`${rel}: invalid JSON (${error.message})`);
+    return null;
+  }
+}
+
+// Each marketplace that exists must offer this plugin, by its manifest name,
+// from the repository root, which is where both manifests live.
+function checkMarketplaces(repoRoot, manifest) {
+  const errors = [];
+  const claude = readJson(repoRoot, ".claude-plugin/marketplace.json", errors);
+  if (claude) {
+    const entry = (claude.plugins ?? []).find((plugin) => plugin.name === manifest.name);
+    if (!entry) errors.push(`.claude-plugin/marketplace.json does not list plugin "${manifest.name}"`);
+    else if (entry.source !== "./") {
+      errors.push(`.claude-plugin/marketplace.json source for "${manifest.name}" must be "./"`);
+    }
+  }
+  const codex = readJson(repoRoot, ".agents/plugins/marketplace.json", errors);
+  if (codex) {
+    if (claude && codex.name !== claude.name) {
+      errors.push(".agents/plugins/marketplace.json name differs from .claude-plugin/marketplace.json");
+    }
+    const entry = (codex.plugins ?? []).find((plugin) => plugin.name === manifest.name);
+    if (!entry) errors.push(`.agents/plugins/marketplace.json does not list plugin "${manifest.name}"`);
+    else if (entry.source?.source !== "local" || entry.source?.path !== "./") {
+      errors.push(`.agents/plugins/marketplace.json source for "${manifest.name}" must be local path "./"`);
+    }
+  }
+  return errors;
+}
+
+// .agents/install-block.md is the single source of install wording: every
+// fenced block in it must appear verbatim in README.md.
+function checkInstallBlock(repoRoot, readme) {
+  const path = join(repoRoot, ".agents", "install-block.md");
+  if (!existsSync(path)) return [];
+  const errors = [];
+  const source = readFileSync(path, "utf8");
+  for (const section of source.matchAll(/^## `([^`]+)`\r?\n([\s\S]*?)(?=^## |(?![\s\S]))/gm)) {
+    for (const block of section[2].matchAll(/^```[^\n]*\n([\s\S]*?)^```/gm)) {
+      if (!readme.includes(block[1])) {
+        errors.push(`README.md: install block "${section[1]}" does not match .agents/install-block.md`);
+      }
+    }
+  }
+  return errors;
+}
+
 export function checkRepo(repoRoot) {
   const errors = [];
   const manifestPath = join(repoRoot, ".claude-plugin", "plugin.json");
@@ -95,8 +153,21 @@ export function checkRepo(repoRoot) {
       errors.push(`${label}: frontmatter name "${skill.name}" does not match directory`);
     }
 
+    if (skill.name && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(skill.name)) {
+      errors.push(`${label}: frontmatter name "${skill.name}" must be lowercase words joined by single hyphens`);
+    }
+    if (skill.name && skill.name.length > MAX_NAME_LENGTH) {
+      errors.push(`${label}: frontmatter name is longer than ${MAX_NAME_LENGTH} characters`);
+    }
+
     if (!skill.description) {
       errors.push(`${label}: SKILL.md has no description in frontmatter`);
+    } else if (/^[|>]/.test(skill.description)) {
+      errors.push(`${label}: description must be a single-line value; this checker does not read YAML block scalars`);
+    } else if (skill.description.length > MAX_DESCRIPTION_LENGTH) {
+      errors.push(
+        `${label}: description is ${skill.description.length} characters; agents accept at most ${MAX_DESCRIPTION_LENGTH}`
+      );
     }
 
     const openaiPath = join(skill.dir, "agents", "openai.yaml");
@@ -144,9 +215,16 @@ export function checkRepo(repoRoot) {
     }
   }
 
+  errors.push(...checkMarketplaces(repoRoot, manifest));
+  errors.push(...checkInstallBlock(repoRoot, readme));
+
   const codexPath = join(repoRoot, ".codex-plugin", "plugin.json");
   if (existsSync(codexPath)) {
-    const codexSkills = JSON.parse(readFileSync(codexPath, "utf8")).skills;
+    const codexManifest = JSON.parse(readFileSync(codexPath, "utf8"));
+    if (codexManifest.name !== manifest.name) {
+      errors.push(`.codex-plugin/plugin.json name "${codexManifest.name}" differs from "${manifest.name}"`);
+    }
+    const codexSkills = codexManifest.skills;
     if (!Array.isArray(codexSkills)) {
       errors.push(".codex-plugin/plugin.json must explicitly list promoted skill paths");
     } else {

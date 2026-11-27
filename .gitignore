@@ -7,3 +7,6 @@ target/
 .worktrees/
 .claude/
 skills-lock.json
+__pycache__/
+*.pyc
+evals/results/
