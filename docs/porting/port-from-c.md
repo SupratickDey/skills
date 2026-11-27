@@ -33,29 +33,33 @@ recorded in the contract before the port starts.
 
 | Trap | What C never recorded |
 |---|---|
-| Ownership | A `T*` may be owned, borrowed, or static. Freeing the wrong one is a double free; freeing none is a leak. The port has to decide per pointer — `Box<T>`, `&T`, or a raw pointer kept raw — and the decision usually lives in a comment or in nothing at all |
+| Ownership | A `T*` may be owned, borrowed, or static. Determine the actual allocation owner, matching release operation, lifetime and aliasing rules. An owning foreign pointer is not automatically a Box; a non-owning pointer is not automatically a Rust reference. |
 | Lifetime | How long a returned pointer stays valid is convention. A function returning a pointer into a static buffer, into the argument, or into freshly allocated memory all look identical in the header, and each maps to a different Rust signature |
-| Nullability | Any pointer may be null. `Option<&T>` is the honest mapping at the boundary; inside the port, a value that must exist should be a type that cannot be absent |
+| Nullability | Preserve the documented null contract with raw pointers at the ABI. Convert to Option or references only after establishing the relevant validity and lifetime invariants. |
 | Length | Arrays decay to pointers, so length travels separately, in a second parameter, in a struct field, in a NUL terminator, or by convention. Each of these is a different Rust type, and getting it wrong is the classic C bug the port is supposed to eliminate |
-| Encoding and validity | `char*` is bytes. It may be UTF-8, some other encoding, or arbitrary binary. `CStr`/`CString` at the boundary, and a deliberate decision — validate, convert lossily, or keep bytes — before anything becomes a `String` |
+| Encoding and validity | `char*` is bytes. It may be UTF-8, some other encoding, or arbitrary binary. Use CStr/CString only for valid NUL-terminated contracts. Preserve explicit-length binary data, embedded NUL and encoding behavior; lossy conversion requires an approved contract |
 
 ## The boundary: bindgen in, cbindgen out
 
-Inward, `bindgen` generates Rust declarations from the existing C headers so
-the Rust side can call the C that has not moved yet; the generated API is raw
-and `unsafe`, so it gets wrapped in a safe module immediately and the
-generated types never spread through the codebase. Outward, `cbindgen`
-generates a C header from the Rust side so existing C code calls the ported
-module without call-site edits: `#[no_mangle]` exports, a stable
-`#[repr(C)]` type set, `catch_unwind` at every entry point because a panic
-crossing into C is undefined behaviour, and a documented caller contract for
-every pointer parameter. Rust lands in the build as a `staticlib` or
-`cdylib` linked into the existing Make, CMake, or Autotools build, and the
-ordering rule that matters most: an empty exported function compiles, links,
-and runs from the C test suite in CI before any logic is ported. Under end
-state B the generated header is the product — version-controlled, and a
-change to it is a semver event; under A and C the seam and its header are
-deleted at cut-over. The full mechanics are in `BOUNDARY.md`.
+Use the approved generators and target compiler configuration. Generated
+declarations are not proof of safety. Keep raw pointers at the ABI and
+establish allocation ownership, provenance, validity, lifetime, alignment
+and aliasing before producing references. Preserve exact calling
+conventions, status codes, errno and output initialization. Use the correct
+export attribute for the Rust edition. Keep foreign unwinding and longjmp
+out of Rust frames; catch_unwind cannot catch aborts. Verify actual native
+artifacts and callbacks on supported targets before claiming compatibility.
+
+## Representation and resource ownership
+
+Preserve allocator/free pairing, realloc failure, null/zero-length behavior,
+flexible array members, integer promotions and defined arithmetic.
+Validate discriminators before reading union arms. repr(C) does not alone
+prove bitfield, packed or wire compatibility; verify size, alignment and
+offsets. Use appropriate volatile/device access for embedded targets,
+not ordinary references or volatile as a synchronization substitute.
+Unregister callbacks and drain in-flight invocations before freeing context.
+Preserve cleanup order and report native, Miri and hardware checks separately.
 
 ## Common questions
 
@@ -73,10 +77,9 @@ shaped exactly like the C; it is refactored away module by module with the
 differential harness green throughout, and stopping there is the
 transliteration anti-pattern in its most extreme form.
 
-**What happens to `goto cleanup`?** `?` plus `Drop` — the one C idiom that
-gets strictly shorter in Rust. The cleanup order the `goto` sequence
-expressed becomes the drop order, and the error path is one expression
-instead of a ladder.
+**What happens to goto cleanup?** Use explicit ownership, guards and fallible
+cleanup where appropriate. Verify sequencing, partial initialization and
+error precedence; Rust drop order is not automatically equivalent.
 
 **How do you handle a `char*` that is not UTF-8?** It is bytes, not a
 string: `&[u8]` end to end, `CStr`/`CString` only where the C side needs a
@@ -85,8 +88,8 @@ keep bytes — recorded before anything becomes a `String`.
 
 **Is the exported header public API?** Under end state B, yes: the library
 and its generated header ship together, the header is version-controlled
-rather than generated-only, and a change to it is a semver event. Under A and
-C the header is scaffold and is deleted at cut-over.
+rather than generated-only, and compatibility changes require review. Under A no language bridge is
+created; under C the temporary header is removed at cut-over.
 
 ## It's working if
 
@@ -97,9 +100,10 @@ C the header is scaffold and is deleted at cut-over.
   raw.
 - Every pointer parameter has a documented caller contract, and every
   `unsafe` block a `// SAFETY:` comment.
-- `cargo miri test` passes over the shim.
+- Supported Rust-only Miri checks and actual native C integration are
+  reported separately.
 - No panic can cross into C.
-- Tag-plus-union structs became enums.
+- Internal enum conversions preserve validated tags and native ABI layout.
 - Sanitizer findings are recorded in the contract as non-reproduced
   behaviour.
 

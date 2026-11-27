@@ -27,22 +27,49 @@ assumes.
 
 ## Two boundaries, and the target decides which
 
-Under B or C: Node, Deno, and Bun take a native addon through
-napi-rs; browsers and edge runtimes take WebAssembly through
-wasm-bindgen. They are not interchangeable: wasm has no threads by
-default, no filesystem, a serialization cost at every call, and a
-hard cap on what crates will compile. Choosing the wrong one is a
-rewrite, not a refactor. Mechanics in `BOUNDARY.md`.
+Under B or C, consider napi-rs for a supported Node-API runtime, or
+wasm-bindgen for an appropriate WebAssembly host. Node, Deno, Bun, browsers
+and edge runtimes differ in addon support, imports, permissions and host APIs.
+WebAssembly capabilities depend on the target and host. Verify compatibility
+and conversion costs before choosing a boundary. See BOUNDARY.md.
 
 ## The traps that break parity silently
 
 | Trap | What actually differs |
 |---|---|
-| Every `number` is an `f64` | There is no integer type. Above 2⁵³ values lose precision silently, and bitwise operators coerce to `i32` first — so `x \| 0` is a documented truncation the port must reproduce or deliberately drop. Decide per field: `i64`, `f64`, or `i32`, and record which in the contract |
-| Two kinds of absent | `undefined` and `null` are distinct, and most codebases use both without a rule. Rust has one `Option`, so each field needs a decision, and JSON round-tripping makes it observable — `serde` must be told whether a missing key and a `null` key are the same thing |
+| Every `number` is an `f64` | Number is binary64, with a safe integer range of -(2⁵³-1) through 2⁵³-1. BigInt is a separate type. Number bitwise operators use 32-bit conversions (unsigned for `>>>` and unsigned shift counts) — so `x \| 0` is a documented truncation the port must reproduce or deliberately drop. Decide per field: `i64`, `f64`, or `i32`, and record which in the contract |
+| Two kinds of absent | `undefined` and `null` are distinct, and most codebases use both without a rule. Use a distinct missing/null/value representation where observable; Option alone collapses absence. JSON object omission and array null substitution have different rules. |
 | Sorting | `Array.prototype.sort` with no comparator sorts by UTF-16 string conversion, so `[10, 9].sort()` is `[10, 9]`. A port that uses a numeric sort produces a different, *better*, and non-parity result |
 | Regex | JavaScript regexes use backtracking and support lookaround and backreferences; the `regex` crate does not. Any source pattern using them needs a different crate or a restructured matcher, and this is found at port time, not at review time |
 | Exceptions carry anything | `throw` accepts any value, and `catch` receives it untyped. Mapping to `Result` means naming the error cases the source never named — `/rust-errors` — and the ones that were thrown from library code are the ones no test covers |
+
+## Preserve runtime coercions
+
+Characterize Number rounding, NaN, infinities, signed zero, remainder,
+ToInt32/ToUint32 and masked shift counts before mapping arithmetic.
+For a Number bitwise conversion, non-finite values and either zero become
+zero; finite values are truncated toward zero and reduced modulo 2^32.
+Do not rely on Rust's saturating float-to-integer casts for this conversion.
+Keep BigInt arithmetic and its mixing/type errors separate.
+
+```rust
+fn js_to_int32(value: f64) -> i32 {
+    if !value.is_finite() || value == 0.0 {
+        return 0;
+    }
+    let reduced = value.trunc() % 4_294_967_296.0;
+    // The signed remainder lies strictly between -2^32 and 2^32.
+    let unsigned = (reduced as i64).rem_euclid(4_294_967_296) as u32;
+    unsigned as i32
+}
+```
+
+This models Number conversion only, not JavaScript object coercion or
+BigInt bitwise operators. Preserve UTF-16 code-unit indexing, lone surrogates
+and default sort order where observable. A Rust UTF-8 string or byte
+comparison is not an interchangeable representation. Characterize sparse
+array holes, undefined, null, property enumeration, SameValueZero equality
+and JSON behavior before choosing Rust data types.
 
 ## Mapping, in one line
 
@@ -63,7 +90,9 @@ an `interface` with one implementing type is a `struct`.
 Objects carry the same judgment: a plain object with known keys is
 a `struct`; `Record<string, T>` with a dynamic key set is a
 `HashMap`; `Map` preserves insertion order where `HashMap` does not,
-so ordered iteration means `IndexMap` or `BTreeMap`. Getting this
+so insertion-order iteration requires an insertion-ordered representation,
+not BTreeMap's sorted keys. Ordinary object property enumeration also has
+special ordering for array-index keys. Getting this
 wrong shows up as reordered JSON output, which is a contract question.
 
 ## The test suite is the corpus
@@ -75,26 +104,27 @@ where a port narrows behaviour. Harness shapes are `/rust-testing`.
 
 ## The event loop was doing work you now have to do
 
-Single-threaded execution meant shared mutable state was safe by
-construction; in Rust the same structure raises `Send`/`Sync`
-questions, and the honest answer is often that the state should
-not have been shared. `async` maps to `tokio` — `/async-rust` —
-the shape differs: a JavaScript Promise is eager, a Rust future is
-lazy until awaited, so code that fired a promise and did not await
-it did run, and its Rust translation does not.
+An event loop does not prevent races across await points, callback reentry,
+or shared memory in workers. Inspect ownership, ordering, cancellation and
+runtime requirements. A Promise constructor executes its executor immediately;
+calling an async function starts execution through its first suspension.
+Rust async function bodies begin when polled, and dropping a future does not
+necessarily cancel independently spawned work. Preserve observable initiation,
+settlement and cancellation behavior. Use the existing Rust runtime and
+route task ownership to `/async-rust`.
 
 ## Verification
 
 ```bash
-cargo test --all-features
-cargo clippy --all-targets --all-features   # add -- -D warnings only if the target repo has no lint config
-npm test                                     # the existing suite still passes against the module being replaced
-npm run build && node -e "require('./index.node'); ..."   # end states B and C only — or the wasm equivalent, from the JS side
+cargo test
+cargo clippy --all-targets   # add -- -D warnings only if no lint policy exists
+npm test                   # only when this is the project's actual test command
 ```
 
-Under end state A the last line does not exist and the differential
-harness runs process-to-process; say so rather than leaving a
-command that does not apply.
+Select supported features and targets and the existing host package manager.
+For B/C build the fresh artifact and verify the public package entry point,
+loaded artifact provenance and supported runtime integration. For A run
+process-to-process parity. Report blocked host or target checks explicitly.
 
 Then the differential run with its denominator, plus the
 language-specific corpus requirement: at least one case per trap —

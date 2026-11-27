@@ -101,3 +101,48 @@
 - Heaptrack: https://github.com/KDE/heaptrack
 - Apache Kafka delivery semantics: https://kafka.apache.org/documentation/#semantics
 - PostgreSQL transaction isolation: https://www.postgresql.org/docs/current/transaction-iso.html
+
+## Python migration correctness and native packaging
+
+- Python expression semantics: https://docs.python.org/3/reference/expressions.html
+- PyO3 migration and interpreter attachment: https://pyo3.rs/main/migration and https://pyo3.rs/main/free-threading.html
+- PyO3 performance: https://pyo3.rs/main/performance.html
+- Maturin distribution tutorial: https://www.maturin.rs/tutorial
+
+## JavaScript runtime parity and native/WebAssembly boundaries
+
+- ECMAScript specification, conversion operations and property keys: https://tc39.es/ecma262/
+- Node-API documentation: https://nodejs.org/api/n-api.html
+- NAPI-RS documentation: https://napi.rs/
+- wasm-bindgen guide: https://rustwasm.github.io/docs/wasm-bindgen/
+- Rust wasm32-unknown-unknown target support: https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html
+
+## Go migration semantics and cgo
+
+- Go language specification: https://go.dev/ref/spec
+- Go context and errors contracts: https://pkg.go.dev/context and https://pkg.go.dev/errors
+- cgo pointer rules and handles: https://pkg.go.dev/cmd/cgo and https://pkg.go.dev/runtime/cgo
+- Rust integer operations: https://doc.rust-lang.org/std/primitive.i64.html
+
+## Java migration and JVM interoperability
+
+- Java Language Specification, types, expressions, statements and memory model: https://docs.oracle.com/javase/specs/jls/se25/html/index.html
+- JNI specification: https://docs.oracle.com/en/java/javase/25/docs/specs/jni/index.html
+- Foreign Function and Memory API: https://openjdk.org/jeps/454
+- Java BigDecimal contract: https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/math/BigDecimal.html
+
+## C++ migration ownership and ABI boundaries
+
+- CXX bridge types and exception translation: https://cxx.rs/ and https://cxx.rs/binding/result.html
+- C++ reference material for smart pointers, move operations and destruction: https://en.cppreference.com/w/cpp/memory/shared_ptr and https://en.cppreference.com/w/cpp/language/move_constructor and https://en.cppreference.com/w/cpp/language/destructor
+- Rust FFI and unwind contracts: https://doc.rust-lang.org/nomicon/ffi.html
+- LLVM sanitizer documentation: https://clang.llvm.org/docs/AddressSanitizer.html and https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html and https://clang.llvm.org/docs/ThreadSanitizer.html
+
+## C migration pointer, allocator and ABI contracts
+
+- Rust slice safety requirements: https://doc.rust-lang.org/std/slice/fn.from_raw_parts.html
+- Rust allocation ownership: https://doc.rust-lang.org/std/boxed/struct.Box.html and https://doc.rust-lang.org/std/vec/struct.Vec.html
+- Rust FFI and unwind contracts: https://doc.rust-lang.org/nomicon/ffi.html
+- Rust pointer provenance: https://doc.rust-lang.org/std/ptr/index.html
+- Rust volatile access: https://doc.rust-lang.org/std/ptr/fn.read_volatile.html
+- Bindgen and cbindgen: https://rust-lang.github.io/rust-bindgen/ and https://github.com/mozilla/cbindgen

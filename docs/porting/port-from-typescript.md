@@ -36,8 +36,8 @@ because it selects the boundary.
 
 | Trap | What actually differs |
 |---|---|
-| Every `number` is an `f64` | There is no integer type. Above 2⁵³ values lose precision silently, and bitwise operators coerce to `i32` first — so `x \| 0` is a documented truncation the port must reproduce or deliberately drop. Decide per field: `i64`, `f64`, or `i32`, and record which in the contract |
-| Two kinds of absent | `undefined` and `null` are distinct, and most codebases use both without a rule. Rust has one `Option`, so each field needs a decision, and JSON round-tripping makes it observable — `serde` must be told whether a missing key and a `null` key are the same thing |
+| Every `number` is an `f64` | Number is binary64, with a safe integer range of -(2⁵³-1) through 2⁵³-1. BigInt is a separate type. Number bitwise operators use 32-bit conversions (unsigned for `>>>` and unsigned shift counts) — so `x \| 0` is a documented truncation the port must reproduce or deliberately drop. Decide per field: `i64`, `f64`, or `i32`, and record which in the contract |
+| Two kinds of absent | `undefined` and `null` are distinct, and most codebases use both without a rule. Use a distinct missing/null/value representation where observable; Option alone collapses absence. JSON object omission and array null substitution have different rules. |
 | Sorting | `Array.prototype.sort` with no comparator sorts by UTF-16 string conversion, so `[10, 9].sort()` is `[10, 9]`. A port that uses a numeric sort produces a different, *better*, and non-parity result |
 | Regex | JavaScript regexes use backtracking and support lookaround and backreferences; the `regex` crate does not. Any source pattern using them needs a different crate or a restructured matcher, and this is found at port time, not at review time |
 | Exceptions carry anything | `throw` accepts any value, and `catch` receives it untyped. Mapping to `Result` means naming the error cases the source never named — `/rust-errors` — and the ones that were thrown from library code are the ones no test covers |
@@ -52,19 +52,26 @@ The end state decides whether a binding layer appears at all:
 | B. Rust core, the npm package is the product | The module keeps its name and its exported signatures; the engine underneath becomes Rust | Permanent public surface — signatures, error types, prebuilds per platform, semver |
 | C. Scaffold | The port ends standalone, but JavaScript calls the Rust module while the migration is under way | Temporary, and deleted at cut-over |
 
-Under B and C the target decides the route: Node, Deno, and Bun take
-a native addon through napi-rs, built with the napi CLI and
-`require`d exactly like the JS module it replaces; browsers and edge
-runtimes take WebAssembly through wasm-bindgen, packaged with
-`wasm-pack` as an npm-compatible module. The two are not
-interchangeable — wasm has no threads by default, no filesystem, a
-serialization cost at every call, and a hard cap on what crates will
-compile — and under B the binding surface is a permanent public API,
-under C it is scaffold deleted at cut-over. Under A there is no
+Under B and C choose a native Node-API addon or WebAssembly according to
+actual runtime support, loader, permissions, host capabilities and deployment
+requirements. Preserve the public package interface. WebAssembly threading,
+filesystem and network access depend on target and host; conversions have
+measurable costs. Under B the binding is permanent public API; under C it
+is a temporary but safety-critical compatibility surface. Under A there is no
 binding layer at any point and the seam is the process boundary the
 system already has — an HTTP route, a CLI subcommand, a queue or cron
 worker — with the differential harness running process-to-process.
 The mechanics are in `BOUNDARY.md`.
+
+## Runtime and package compatibility
+
+Preserve Number coercions, BigInt behavior, signed zero, UTF-16 indexing,
+sparse arrays and observable property order. Check missing/null/value
+distinctions and actual JSON output. Preserve callback initiation, Promise
+settlement and cancellation semantics. Native addons need supported
+environment and thread lifetimes; WebAssembly views need ownership and
+memory-growth handling. Verify the packed package from clean consumer
+projects, including supported runtime, ESM/CJS exports and actual host tests.
 
 ## Common questions
 
@@ -85,10 +92,9 @@ not port as-is: it needs a different crate or a restructured matcher.
 This is found at port time, not at review time, so the source
 patterns are inventoried before the first one is translated.
 
-**Can both `undefined` and `null` map to `Option<T>`?** Yes, but the
-JSON behaviour has to be pinned: `serde` must be told whether a
-missing key and a `null` key are the same thing, and the decision is
-per field, recorded in the contract.
+**Can both undefined and null map to Option<T>?** Only if their distinction
+is irrelevant to the approved contract. Otherwise represent missing, null and
+value separately and test omission and explicit null.
 
 **Can the TypeScript types be trusted?** No. They are erased before
 anything runs: an annotation is a claim the runtime never checked, so

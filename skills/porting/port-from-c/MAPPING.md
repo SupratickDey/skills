@@ -6,24 +6,24 @@ rather than a translation table.
 
 | C | Rust | The decision |
 |---|---|---|
-| `T*` (owning) | `Box<T>` | Who frees it, which the header did not say |
-| `T*` (borrowing) | `&T` / `&mut T` | How long it stays valid |
-| `T*` (nullable) | `Option<&T>` / `Option<Box<T>>` | Whether null is a real case or an invariant violation |
-| `T*` + `size_t len` | `&[T]` / `&mut [T]` | Whether the length was in elements or bytes |
+| `T*` (owning) | owning foreign handle or compatible Rust owner | Verify allocator, layout, destructor and release operation |
+| `T*` (borrowing) | verified reference or raw handle | Prove validity, lifetime and aliasing before borrowing |
+| `T*` (nullable) | raw ABI pointer; validated optional owner/borrow internally | Nullability alone does not prove reference validity |
+| `T*` + `size_t len` | verified slice or raw buffer view | Check units, bounds, alignment, provenance, initialization, null/zero length and aliasing |
 | `char*` | `&CStr` / `CString` / `&str` / `&[u8]` | Encoding and NUL termination |
 | `void*` | A generic, an enum, or `*mut c_void` | The set of types that actually reach the site |
 | Fixed array `T[N]` | `[T; N]` | Whether it decays anywhere |
 | `malloc` / `free` | `Box`, `Vec`, or an allocator API | Whether the allocation was for one value or many |
-| `realloc` | `Vec` growth | Whether pointers into the buffer were held across it |
+| `realloc` | compatible owner or Vec growth for Rust-owned data | Preserve failure ownership, zero-size contract and invalidated interior pointers |
 | `memcpy` between structs | Assignment / `Clone` | Whether the types were really compatible |
 | `struct` | `struct` | `#[repr(C)]` only if it crosses the boundary |
 | Bitfields | `bitflags`, or explicit masking | `#[repr(C)]` does not reproduce bitfield layout |
 | `union` | `enum` with data | Tag plus union is an enum — the big row |
 | Bare `union` (no tag) | `union` (unsafe) or an enum | Whether the reader can know the active arm |
-| `enum` | `enum` | C enums accept out-of-range values; the port narrows, and that is recorded |
+| `enum` | ABI-compatible integer and validated internal enum | Verify native representation; never create a Rust enum from an unchecked discriminant |
 | `typedef` | Type alias or newtype | Whether the alias carried meaning — `/type-driven-design` |
-| Function pointer | `fn` pointer / `Box<dyn Fn>` | Whether a context pointer travelled alongside |
-| Callback + `void* user_data` | A closure or a trait object | The lifetime of the captured data |
+| Function pointer | exact extern ABI function pointer, optional if nullable | Preserve calling convention, signature, lifetime and context; Rust closures are not C function pointers |
+| Callback + `void* user_data` | ABI trampoline and owned context | Verify registration, reentry, concurrency, unregistration and in-flight callback lifetime |
 | `int` return code | `Result<(), E>` | The code-to-variant mapping |
 | Out-parameter | The return value | Whether it was written on the error path too |
 | `errno` | Error enum variants | Which codes callers actually branch on |
@@ -36,10 +36,10 @@ rather than a translation table.
 | `#ifdef` | `#[cfg(...)]` / features | Which combinations are actually built |
 | `#include` | Modules and `use` | What was really public |
 | `size_t` | `usize` | Nothing hidden |
-| `int` / `long` | `i32` / `i64` | Platform width, and that C signed overflow is undefined while Rust is defined-or-panicking |
+| `int` / `long` | target C ABI types or verified fixed-width integers | Preserve target data model, promotions and defined arithmetic; signed overflow is not a parity requirement |
 | Unsigned wraparound | `wrapping_*` | Whether the wrap was intentional |
 | Implicit conversion / promotion | Explicit `as` or `TryFrom` | Every truncation the source never showed |
-| `volatile` | `read_volatile` / `write_volatile` | Whether it was memory-mapped IO or a threading mistake |
+| `volatile` | reviewed volatile device access or appropriate synchronization | Volatile is not atomic, mutual exclusion or a hardware memory barrier |
 | `pthread` | `std::thread` | Nothing hidden |
 | `pthread_mutex` | `Mutex<T>` | Rust guards data, so fields move inside |
 | `atomic` builtins | `std::sync::atomic` | Memory ordering, which both expose |
@@ -51,7 +51,18 @@ rather than a translation table.
 
 - A pointer whose ownership genuinely varies at runtime — the C API is the
   bug; the port fixes it at the boundary and records the change.
-- Any struct whose layout is relied on by another language or by serialized
-  data — `#[repr(C)]` is mandatory, and a test must pin the layout.
+- Native shared layout requires verified size, alignment, offsets and ABI.
+  Serialized data needs its own explicit format, not raw repr(C) bytes.
 - Anything that was undefined behaviour in C — no mapping; a contract
   decision, recorded.
+
+## Additional boundary decisions
+
+- Flexible array members: verify actual allocation extent, checked element
+  offset and length; do not infer storage from sizeof(header).
+- Bitfields, packed fields and unions: use compatible generated declarations
+  or native accessors; avoid creating unaligned references.
+- memcpy and memmove differ on overlap. Preserve byte-level effects only
+  with valid initialized ranges and compatible representations.
+- C macros can evaluate arguments multiple times or conditionally. Preserve
+  defined side effects and evaluation behavior instead of blindly using fn.
