@@ -1,5 +1,51 @@
 # rewrite-rs-skills
 
+## 0.3.0
+
+2026-11-27
+
+The promoted set grows from 28 to 43 skills, adding architecture, security,
+refactoring, planning, configuration, debugging and nine specialized
+production skills, each with a compiled, tested reference example. The plugin
+installs from one repository into both Claude Code and Codex. Evaluation now
+runs paired baseline and skills arms in either agent with an automated judge,
+and covers every specialized skill with an eval case.
+
+### Minor Changes
+
+- 67eb7fb: Add application engineering skills covering network APIs, persistence, runtime resilience and production readiness.
+- d001d62: Add shared fixture discovery, paired Claude and Codex CLI execution, evidence-based weighted grading and comparison reports with offline tests.
+- 4466a16: Add production engineering skills for architecture, application security, behavior-preserving refactoring and specification-driven implementation planning.
+- eca2006: Make the cross-agent evaluation runner produce valid comparisons: run each case's own scaffold in a workspace outside the repository, pass the case tool allowlist to Claude Code, verify which skills each arm can see and mark contaminated runs invalid, capture diffs, file edits and skill activations, stop timed-out process groups, and add an arm-blind automated judge and aggregated reports. Add an installation check for both agents and run it in CI with pinned CLIs, validate marketplaces, frontmatter limits and install wording, add Codex plugin interface metadata, harden the main pre-merge gate and protected-file watch list, move CI to Node 22, and add compiled, tested examples to the resilience, CLI, API pagination, distributed ordering and cross-platform path skills.
+- 53ecb11: Add Rust runtime configuration and systematic debugging skills with synchronized installation, routing and agent metadata.
+- 45ad5d1: Add profile-driven selective Rust acceleration, end-to-end performance acceptance, safe differential fixtures and explicit rollback policies to existing skills.
+- d59946f: Add workspace management, cross-platform development, CLI engineering, memory profiling and distributed systems skills.
+- e2f6701: Add verified reference examples to rust-database, rust-memory-profiling, rust-production-readiness and rust-workspace-management, and add an eval case for each of the nine specialized skills (API pagination, database lost updates, retry budgets, production readiness review, workspace inheritance, cross-platform paths, CLI exit status, unbounded cache retention and redelivered messages).
+
+### Patch Changes
+
+- 57e2b1a: Correct API compatibility, domain invariant enforcement and Serde wire validation guidance, including downstream tests and resource limits.
+- 3bfb2dc: Strengthen C migration guidance for pointer provenance, allocation, native ABI, callbacks, representation, embedded targets and verification.
+- 994eb0d: Preserve C++ ownership, cleanup, move and exception semantics and strengthen native ABI, CXX and integration verification guidance.
+- 567c0b0: Synchronize explicit Claude Code and Codex skill inventories, reject broad or drifting Codex declarations, and document cross-agent acceptance and progressive disclosure.
+- e81f887: Point installation instructions at the maintained fork, add a collision-safe promoted-only copy installer, and guard duplicate skill names and experimental content in Codex discovery.
+- 566f4e9: Preserve Go integer, nil, channel, cancellation, error and cgo boundary semantics during Rust migration.
+- 58f4048: Correct idiomatic Rust guidance on iterator bounds, unequal lengths, conversion semantics and partial ordering. Preserve behaviour during expression-level rewrites and use repository-aware verification.
+- c7ff80a: Correct the install instructions: sharing the Claude Code plugin through a repository needs the committed project settings plus a one-time marketplace add by each teammate, and the gh skill route requires GitHub CLI 2.90.0 or later and installs from the latest tagged release.
+- 41f5f7d: Preserve Java arithmetic, identity, collection, framework and concurrency contracts and strengthen JNI/FFM lifetime and packaging guidance.
+- 9125624: Correct JavaScript coercion, presence and ordering parity, native addon lifecycle, WebAssembly host capabilities and distribution verification.
+- 336405e: Correct Python integer and mapping parity, interpreter attachment, free-threaded synchronization, native data lifetimes and wheel verification guidance.
+- 7e34846: Strengthen observability, unsafe Rust, macro hygiene and executable documentation guidance.
+- 07bbfd6: Correct cancellation, task lifecycle, bounded concurrency, lock and atomic-ordering guidance; document graceful shutdown and verification limits.
+- 0df00a7: Strengthen dependency risk assessment, build-host security, advisory triage, reproducible resolution and owner-approved risk exceptions.
+- ecd5b18: Clarify clone and shared-state semantics, lifetime bounds, borrow splitting and compatibility-aware verification.
+- 5556f9f: Correct panic and foreign unwind semantics, preserve recovery invariants and protect sensitive diagnostics across error, FFI and unsafe skills.
+- e714092: Continue evidence-based static reviews when checks are blocked, preserve correctness severity despite documented defects, and add a regression evaluation.
+- 01a3ce8: Prevent destructive skill-link collisions in the Claude Code and Codex development harness and add isolated regression tests.
+- 01b0068: Share repository authoring and engineering instructions across Claude Code and Codex while retaining the original skill rules.
+- 442b9fd: Simplify the fork release process with local Changesets preparation, ordinary maintainer release PRs and read-only changeset checks, retaining repository validation and main branch safeguards.
+- 483a918: Correct workspace lint inheritance, package-specific CI verification and non-destructive pre-commit setup and testing.
+
 ## 0.2.0
 
 2026-11-18
@@ -71,7 +117,7 @@ The full set, by bucket:
 ### Language craft — `skills/rust/`
 
 - `idiomatic-rust` — write Rust that reads like Rust — iterator pipelines over index loops, From/Into over ad-hoc converters, derives over hand-written impls, newtypes over bare primitives
-- `ownership-not-clone` — use ownership and borrowing instead of reaching for clone, Rc, RefCell, or Arc<Mutex<_>> to silence the borrow checker; every clone must be explainable
+- `ownership-not-clone` — use ownership and borrowing instead of reaching for clone, Rc, RefCell, or Arc<Mutex<\_>> to silence the borrow checker; every clone must be explainable
 - `rust-errors` — design Rust error types and panic policy — Result over unwrap, thiserror for libraries, anyhow for binaries, context that survives the call stack
 - `type-driven-design` — make illegal states unrepresentable — enums instead of boolean and string flags, newtypes instead of bare primitives, parsed types instead of validated ones, typestate for protocol order
 - `rust-api-design` — design a Rust public API — trait design, generics versus dyn, sealed traits, what is exported, and which changes break semver
