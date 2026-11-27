@@ -62,7 +62,7 @@ target project's documented decisions.
 Every promoted skill must appear in all three of:
 
 - `README.md`
-- `.claude-plugin/plugin.json`'s `skills` array
+- both `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` explicit `skills` arrays
 - `docs/<bucket>/<name>.md`
 
 A non-promoted skill appears in none of the three. The split that decides which
@@ -131,7 +131,16 @@ Run these before considering skill work done:
 - `scripts/link-skills.sh` — symlinks skills into the local harness for manual
   testing.
 
-## 10. Code examples
+## 10. Progressive disclosure
+
+Keep SKILL.md focused on activation, essential decisions, safety invariants
+and verification. Move specialized detail into references within that skill's
+own directory, with an explicit reading trigger. Do not load every reference
+or unrelated skill by default. Never move critical preconditions out of the
+main guidance merely to reduce length. Preserve manual invocation controls
+and test explicit and implicit activation separately in both agents.
+
+## 11. Code examples
 
 A complete, self-contained Rust example is fenced ` ```rust `. A deliberate fragment —
 a snippet using symbols defined elsewhere, a signature with no body, illustrative

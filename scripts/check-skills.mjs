@@ -147,11 +147,9 @@ export function checkRepo(repoRoot) {
   const codexPath = join(repoRoot, ".codex-plugin", "plugin.json");
   if (existsSync(codexPath)) {
     const codexSkills = JSON.parse(readFileSync(codexPath, "utf8")).skills;
-    if (codexSkills === "./skills/" || codexSkills === "./skills") {
-      if (collectSkills(repoRoot).some((skill) => !skill.promoted)) {
-        errors.push("Codex skills root includes in-progress content; use a verified promoted-only package before adding experimental skills");
-      }
-    } else if (Array.isArray(codexSkills)) {
+    if (!Array.isArray(codexSkills)) {
+      errors.push(".codex-plugin/plugin.json must explicitly list promoted skill paths");
+    } else {
       const codexListed = new Set(codexSkills);
       if (codexListed.size !== codexSkills.length) {
         errors.push(".codex-plugin/plugin.json contains duplicate skill paths");
@@ -166,8 +164,6 @@ export function checkRepo(repoRoot) {
           errors.push(`.codex-plugin/plugin.json lists "${entry}" which plugin.json does not`);
         }
       }
-    } else {
-      errors.push(".codex-plugin/plugin.json has an unrecognized skills declaration");
     }
   }
 

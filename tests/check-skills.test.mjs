@@ -256,17 +256,23 @@ test("duplicate manifest paths are rejected", () => {
   }
 });
 
-test("broad Codex discovery rejects experimental skills", () => {
+test("Codex explicit inventory excludes experimental skills", () => {
   const root = scaffold();
   try {
     addSkill(root, "rust", "idiomatic-rust");
     promote(root, "rust", "idiomatic-rust");
+    addSkill(root, "in-progress", "draft-skill", { docs: false });
     const dir = join(root, ".codex-plugin");
     mkdirSync(dir);
-    writeFileSync(join(dir, "plugin.json"), JSON.stringify({ skills: "./skills/" }));
+    const file = join(dir, "plugin.json");
+    writeFileSync(file, JSON.stringify({ skills: ["./skills/rust/idiomatic-rust"] }));
     assert.deepEqual(checkRepo(root).errors, []);
-    addSkill(root, "in-progress", "draft-skill", { docs: false });
-    assert.ok(checkRepo(root).errors.some((e) => e.includes("Codex skills root includes in-progress")));
+    writeFileSync(file, JSON.stringify({ skills: "./skills/" }));
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("must explicitly list")));
+    writeFileSync(file, JSON.stringify({ skills: ["./skills/rust/idiomatic-rust", "./skills/in-progress/draft-skill"] }));
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("which plugin.json does not")));
+    writeFileSync(file, JSON.stringify({ skills: [] }));
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("skills array is missing")));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
