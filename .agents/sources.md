@@ -146,3 +146,11 @@
 - Rust pointer provenance: https://doc.rust-lang.org/std/ptr/index.html
 - Rust volatile access: https://doc.rust-lang.org/std/ptr/fn.read_volatile.html
 - Bindgen and cbindgen: https://rust-lang.github.io/rust-bindgen/ and https://github.com/mozilla/cbindgen
+
+## Cross-agent distribution and verification
+
+- Codex skills and plugins: https://developers.openai.com/codex/skills and https://developers.openai.com/codex/plugins
+- Claude Code plugin reference: https://code.claude.com/docs/en/plugins-reference
+
+- Codex compatibility manifest skill path arrays: https://developers.openai.com/plugins/deploy/submission
+- Claude Code plugin reference: https://code.claude.com/docs/en/plugins-reference

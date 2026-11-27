@@ -229,3 +229,51 @@ test("a router flows heading that disagrees with its bullet list is an error", (
     errors.some((e) => e.includes("The four flows") && e.includes("lists 2"))
   );
 });
+
+
+test("duplicate promoted names across buckets are rejected", () => {
+  const root = scaffold();
+  try {
+    addSkill(root, "rust", "duplicate");
+    addSkill(root, "workflow", "duplicate");
+    promote(root, "rust", "duplicate");
+    promote(root, "workflow", "duplicate");
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("duplicate promoted skill name")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("duplicate manifest paths are rejected", () => {
+  const root = scaffold();
+  try {
+    addSkill(root, "rust", "idiomatic-rust");
+    promote(root, "rust", "idiomatic-rust");
+    promote(root, "rust", "idiomatic-rust");
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("duplicate skill paths")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("Codex explicit inventory excludes experimental skills", () => {
+  const root = scaffold();
+  try {
+    addSkill(root, "rust", "idiomatic-rust");
+    promote(root, "rust", "idiomatic-rust");
+    addSkill(root, "in-progress", "draft-skill", { docs: false });
+    const dir = join(root, ".codex-plugin");
+    mkdirSync(dir);
+    const file = join(dir, "plugin.json");
+    writeFileSync(file, JSON.stringify({ skills: ["./skills/rust/idiomatic-rust"] }));
+    assert.deepEqual(checkRepo(root).errors, []);
+    writeFileSync(file, JSON.stringify({ skills: "./skills/" }));
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("must explicitly list")));
+    writeFileSync(file, JSON.stringify({ skills: ["./skills/rust/idiomatic-rust", "./skills/in-progress/draft-skill"] }));
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("which plugin.json does not")));
+    writeFileSync(file, JSON.stringify({ skills: [] }));
+    assert.ok(checkRepo(root).errors.some((e) => e.includes("skills array is missing")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

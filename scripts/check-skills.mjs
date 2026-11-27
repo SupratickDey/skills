@@ -75,6 +75,12 @@ export function checkRepo(repoRoot) {
   const manifestPath = join(repoRoot, ".claude-plugin", "plugin.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const listed = new Set(manifest.skills ?? []);
+  if (!Array.isArray(manifest.skills)) {
+    errors.push("plugin.json skills must be an array");
+  } else if (listed.size !== manifest.skills.length) {
+    errors.push("plugin.json contains duplicate skill paths");
+  }
+  const promotedNames = new Set();
   const readme = existsSync(join(repoRoot, "README.md"))
     ? readFileSync(join(repoRoot, "README.md"), "utf8")
     : "";
@@ -112,6 +118,10 @@ export function checkRepo(repoRoot) {
     }
 
     if (skill.promoted) {
+      if (promotedNames.has(skill.directory)) {
+        errors.push(`${label}: duplicate promoted skill name`);
+      }
+      promotedNames.add(skill.directory);
       if (!listed.has(entry)) {
         errors.push(`${label}: promoted but missing from plugin.json skills array`);
       }
@@ -137,8 +147,13 @@ export function checkRepo(repoRoot) {
   const codexPath = join(repoRoot, ".codex-plugin", "plugin.json");
   if (existsSync(codexPath)) {
     const codexSkills = JSON.parse(readFileSync(codexPath, "utf8")).skills;
-    if (Array.isArray(codexSkills)) {
+    if (!Array.isArray(codexSkills)) {
+      errors.push(".codex-plugin/plugin.json must explicitly list promoted skill paths");
+    } else {
       const codexListed = new Set(codexSkills);
+      if (codexListed.size !== codexSkills.length) {
+        errors.push(".codex-plugin/plugin.json contains duplicate skill paths");
+      }
       for (const entry of listed) {
         if (!codexListed.has(entry)) {
           errors.push(`.codex-plugin/plugin.json skills array is missing "${entry}"`);
