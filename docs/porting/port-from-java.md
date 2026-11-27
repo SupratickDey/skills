@@ -28,8 +28,8 @@ JNI layer exists at all is settled there.
 
 | Trap | What actually differs |
 |---|---|
-| Integer overflow | Java wraps silently on overflow at every width. Rust panics in debug and wraps in release, so every arithmetic site is a decision: `wrapping_*` to reproduce Java, or checked arithmetic plus a new error path that the source never had |
-| Strings are UTF-16 | `String.length()`, `charAt`, and `substring` count UTF-16 code units, so anything outside the basic multilingual plane counts as two. Rust `String` is UTF-8 and slices by byte. Every index arithmetic on a Java string is a decision, and emoji or CJK input is where the difference shows |
+| Integer overflow | Java int and long arithmetic wraps at its promoted width, except operations with explicit error contracts such as Math.addExact. byte, short and char generally promote to int. Rust overflow checks depend on the build policy; preserve the source arithmetic and conversion semantics |
+| Strings are UTF-16 | `String.length()`, `charAt`, and `substring` count UTF-16 code units, so anything outside the basic multilingual plane counts as two. Rust String is UTF-8 and does not support integer indexing. Preserve UTF-16 code units, including isolated surrogates, when observable; supplementary characters occupy two units |
 | `null` is everywhere and untyped | Any reference may be null, so the port must decide per field whether `Option` reproduces a real absence or papers over a state that should not exist — the second is `/type-driven-design`. Mapping every reference to `Option` produces Rust that is worse than the Java |
 | `equals`/`hashCode` contracts | Derived `PartialEq`/`Hash` in Rust compare all fields; a hand-written Java `equals` often compares a subset, and collections branch on it. A port that derives where the source hand-wrote changes set and map behaviour silently |
 | Checked versus unchecked exceptions | Checked exceptions are a declared contract and map to `Result` variants. Unchecked ones (`NullPointerException`, `IllegalStateException`, `IndexOutOfBoundsException`) were often *caught anyway* somewhere up the stack; grep for the catch sites before deciding any of them is a panic |
@@ -43,12 +43,24 @@ becomes a trait only when the implementations genuinely vary at runtime,
 and an abstract class carrying state maps to a struct field plus a
 trait, never to a supertrait with fields, because Rust has none.
 
-Spring, Jakarta, and annotation-driven wiring exist to supply what Java
-lacks; Rust supplies it with function arguments and constructors.
+Inventory the behavior of Spring, Jakarta and annotation-driven wiring,
+including security, transaction, validation and lifecycle interceptors.
+Preserve those contracts explicitly rather than reproducing a container.
 Dependency injection becomes explicit construction, usually a single
 `App` struct built in `main`. The most common failed Java port is
 reproducing the DI container in Rust: a trait-object graph nobody can
 follow, solving a problem the language does not have.
+
+## Runtime and native boundaries
+
+Preserve promoted-width arithmetic, masked shifts, MIN division overflow,
+UTF-16 code units, reference identity, decimal scale and error precedence.
+Check monitor reentrancy, condition waiting, interruption and futures before
+selecting synchronization or an executor. JNI environments are thread-bound;
+local and global references have different lifetimes. Preserve pending Java
+exceptions, native buffer ownership, callback shutdown and class loading.
+FFM is an option only when the approved JDK and ABI contract support it.
+Test the packaged native library in the actual supported JVM matrix.
 
 ## Common questions
 
@@ -61,9 +73,9 @@ is scaffold deleted at cut-over.
 **Does this skill cover Kotlin or Scala?** No. The JVM is shared, the
 idioms are not; this skill maps Java only.
 
-**What happens to Spring wiring?** It does not survive. Dependency
-injection becomes explicit construction — the wiring that a container
-hid becomes visible in the code, which is the point.
+**What happens to Spring wiring?** Prefer explicit construction, but
+preserve security, transaction, validation and lifecycle behavior that the
+framework previously provided.
 
 **How do you reproduce Java integer wraparound?** Per arithmetic site:
 `wrapping_*` operators to reproduce the wrap, or checked arithmetic
@@ -80,10 +92,9 @@ compares a subset, and sets and maps branch on it.
 - The end state was chosen before any Rust was written.
 - No DI container was reproduced — the wiring is explicit
   construction.
-- Fixed subclass sets became enums rather than trait objects.
+- Hierarchy changes preserve identity, dispatch and public contracts.
 - Overflow behaviour was decided per arithmetic site and written down.
-- String index arithmetic was re-derived for UTF-8 rather than
-  transliterated.
+- Observable UTF-16 indexing and encoding behavior are preserved.
 - Every hand-written `equals` was either reproduced by hand or its
   replacement justified in the contract.
 
