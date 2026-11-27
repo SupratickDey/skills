@@ -137,3 +137,12 @@
 - C++ reference material for smart pointers, move operations and destruction: https://en.cppreference.com/w/cpp/memory/shared_ptr and https://en.cppreference.com/w/cpp/language/move_constructor and https://en.cppreference.com/w/cpp/language/destructor
 - Rust FFI and unwind contracts: https://doc.rust-lang.org/nomicon/ffi.html
 - LLVM sanitizer documentation: https://clang.llvm.org/docs/AddressSanitizer.html and https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html and https://clang.llvm.org/docs/ThreadSanitizer.html
+
+## C migration pointer, allocator and ABI contracts
+
+- Rust slice safety requirements: https://doc.rust-lang.org/std/slice/fn.from_raw_parts.html
+- Rust allocation ownership: https://doc.rust-lang.org/std/boxed/struct.Box.html and https://doc.rust-lang.org/std/vec/struct.Vec.html
+- Rust FFI and unwind contracts: https://doc.rust-lang.org/nomicon/ffi.html
+- Rust pointer provenance: https://doc.rust-lang.org/std/ptr/index.html
+- Rust volatile access: https://doc.rust-lang.org/std/ptr/fn.read_volatile.html
+- Bindgen and cbindgen: https://rust-lang.github.io/rust-bindgen/ and https://github.com/mozilla/cbindgen
