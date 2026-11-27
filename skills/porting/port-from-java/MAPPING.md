@@ -10,9 +10,9 @@ when it compiles.
 | `class` (behaviour) | `struct` + `impl` | Whether the class was really a namespace for functions |
 | `abstract class` | `enum`, or `trait` + a struct field | Fixed subclass set means enum |
 | `extends` | Composition | Rust has no field inheritance; each promoted member is a decision |
-| `interface` | `trait` | Count implementations; one implementation means a struct |
+| `interface` | concrete type, generic or trait | Preserve actual substitution and public contract, not just implementer count |
 | `interface` with default methods | `trait` with default method bodies | Nothing hidden |
-| `record` | `struct` + `#[derive(Clone, Debug, PartialEq)]` | The clean row |
+| `record` | struct and appropriate implementations | Preserve constructor validation, shallow immutability, equality and public accessors |
 | `enum` with fields and methods | `enum` + `impl` | Java enum instances are singletons; identity comparison in the source is a tell |
 | Static factory | `fn new` / `fn from_*` | Whether construction can fail — `/rust-errors` |
 | Builder | Builder, or `Default` + struct update | Whether every field was really optional |
@@ -22,25 +22,25 @@ when it compiles.
 | `Optional<T>` | `Option<T>` | The clean row |
 | Checked exception | `Result<T, E>` variant | The error taxonomy — `/rust-errors` |
 | Unchecked exception | `Result` or `panic!` | Grep the catch sites first |
-| `finally` | `Drop` guard | Whether cleanup can fail |
-| `try-with-resources` | `Drop` | Same |
+| `finally` | explicit cleanup or guard | Preserve control-flow override, error precedence and cleanup on applicable exits |
+| `try-with-resources` | explicit fallible close plus guard | Preserve reverse close order, primary exception and suppressed exceptions |
 | `String` | `String` / `&str` | UTF-16 versus UTF-8, as in `SKILL.md` |
 | `char` | `char`, or `u16` | A Java `char` is a UTF-16 code unit and may be half a surrogate pair; `char` cannot hold one |
 | `StringBuilder` | `String` + `push_str` | Nothing hidden |
 | `int` / `long` | `i32` / `i64` | Wraparound |
 | `Integer` / `Long` (boxed) | `i32` / `i64`, or `Option<_>` | Whether the box was nullable, and whether identity comparison (`==` on boxes) was relied on |
-| `BigDecimal` | `rust_decimal` | Never `f64` for money |
+| `BigDecimal` | compatible decimal representation | Preserve arbitrary precision, scale, rounding, compareTo versus equals and failure contracts; rust_decimal is bounded |
 | `BigInteger` | `i128` / `num-bigint` | Actual range |
 | `ArrayList` | `Vec<T>` | Nothing hidden |
 | `HashMap` | `HashMap` | Output that depends on the order the map yields entries |
-| `LinkedHashMap` | `IndexMap` | Insertion order was load-bearing |
-| `TreeMap` | `BTreeMap` | The comparator, if custom |
+| `LinkedHashMap` | insertion/access-ordered representation | Preserve access-order mode and eviction if used |
+| `TreeMap` | ordered representation | Preserve comparator-based key identity and order; BTreeMap uses Ord |
 | `HashSet` / `TreeSet` | `HashSet` / `BTreeSet` | Same ordering question |
 | `Iterable` / `Iterator` | `Iterator` | Java iterators may be infinite and stateful; same in Rust |
 | Stream | Iterator chain | Laziness matches; shape is `/idiomatic-rust` |
 | Parallel stream | `rayon` | Shared mutable state, which becomes a compile error |
-| `synchronized` | `Mutex<T>` | Rust guards data, not blocks, so fields move inside the mutex |
-| `volatile` | `Atomic*` with ordering | Java volatile is sequentially consistent; naming the Rust ordering is required |
+| `synchronized` | synchronization matching monitor contract | Preserve reentrancy, monitor identity, wait/notify and happens-before |
+| `volatile` | appropriate atomic or synchronized state | Preserve Java memory-model guarantees; compound read-modify-write is not automatically atomic |
 | `ExecutorService` | `rayon`, a thread pool, or `tokio` | CPU-bound versus IO-bound |
 | `CompletableFuture` | `Future` + `tokio` | Eager versus lazy — `/async-rust` |
 | Reflection | Derive macros, or explicit code | What the reflection actually did; usually serialization |
@@ -56,8 +56,19 @@ when it compiles.
 
 - A hand-written `equals` that ignores fields — deriving changes
   behaviour; write the impl by hand and say why.
-- Object identity comparison — `==` on references has no meaning in Rust;
-  the code paths built on it are deleted, and the deletion is recorded.
+- Object identity comparison: preserve observable reference identity using
+  the owning representation or explicit stable identity. Do not delete
+  identity-sensitive branches.
 - Any class hierarchy with a `visit` method — the visitor pattern is an
   enum plus a `match`, and translating the visitor keeps the workaround
   for the missing enum.
+
+## Additional checks
+
+- byte and short arithmetic promote to int; char is a UTF-16 code unit.
+- Java arrays can be covariant and throw ArrayStoreException; preserve
+  observable acceptance and failure semantics at the boundary.
+- Preserve Java String hash values only where externally observable, and
+  ensure equal keys hash equally in the Rust collection.
+- Preserve class initialization order, failure and synchronization where
+  observable. OnceLock does not reproduce every JVM initialization state.

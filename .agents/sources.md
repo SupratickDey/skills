@@ -123,3 +123,10 @@
 - Go context and errors contracts: https://pkg.go.dev/context and https://pkg.go.dev/errors
 - cgo pointer rules and handles: https://pkg.go.dev/cmd/cgo and https://pkg.go.dev/runtime/cgo
 - Rust integer operations: https://doc.rust-lang.org/std/primitive.i64.html
+
+## Java migration and JVM interoperability
+
+- Java Language Specification, types, expressions, statements and memory model: https://docs.oracle.com/javase/specs/jls/se25/html/index.html
+- JNI specification: https://docs.oracle.com/en/java/javase/25/docs/specs/jni/index.html
+- Foreign Function and Memory API: https://openjdk.org/jeps/454
+- Java BigDecimal contract: https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/math/BigDecimal.html
